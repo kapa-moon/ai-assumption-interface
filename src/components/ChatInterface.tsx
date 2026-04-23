@@ -1,7 +1,7 @@
 // Chat Interface - main chat panel (ported from syconistic-dial)
 import { useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
-import type { Message, Highlight } from '../types';
+import type { Message } from '../types';
 
 interface ChatInterfaceProps {
   messages: Message[];

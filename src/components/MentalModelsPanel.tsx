@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { DraggableScoreBar } from './DraggableScoreBar';
 import { ScoresChart } from './ScoresChart';
-import type { CombinedMentalModel, InductMentalModel, TypesSupportMentalModel } from '../types';
+import type { CombinedMentalModel } from '../types';
 
 const INDUCT_SERIES = [
   { key: 'validation_seeking', label: 'Validation seeking', color: '#f8961e' },

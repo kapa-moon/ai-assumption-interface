@@ -1,7 +1,7 @@
 // Secure serverless API for Azure OpenAI chat + mental model inference
 // API keys are stored server-side (environment variables), never exposed to client
 
-import { inferInductMentalModel, inferTypesSupportMentalModel } from '../../src/services/azureOpenAI-server';
+import { inferInductMentalModel, inferTypesSupportMentalModel } from '../../src/services/mentalModelInference';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
