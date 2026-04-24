@@ -42,9 +42,7 @@ function App() {
     handleInductReactionChange,
     handleTypesSupportReactionChange,
     handleSaveHighlight,
-    handleFeedbackSubmit,
     signalChatComplete,
-    // shouldShowFeedback,
   } = useChat({
     qualtricsParams,
   });

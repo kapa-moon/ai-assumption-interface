@@ -317,35 +317,10 @@ export function useChat({ qualtricsParams }: UseChatProps) {
     setHighlightsByMessage((prev) => ({ ...prev, [msgIdx]: (prev[msgIdx] ?? 0) + 1 }));
   }, []);
 
-  // Handle feedback submission - temporarily disabled
-  const handleFeedbackSubmit = useCallback((_feelingScore: number, _helpfulnessScore: number) => {
-    // const assistantCount = messages.filter((m) => m.role === 'assistant').length;
-    // setLastFeedbackAt(assistantCount);
-
-    // Update current turn with feedback
-    // setMentalModelsByTurn((prev) => {
-    //   const lastIdx = prev.length - 1;
-    //   if (lastIdx < 0) return prev;
-
-    //   return prev.map((mm, i) =>
-    //     i === lastIdx
-    //       ? { ...mm, feelingScore, helpfulnessScore }
-    //       : mm
-    //   );
-    // });
-  }, []);
-
   // Signal completion
   const signalChatComplete = useCallback(() => {
     signalCompletion(qualtricsParams.sessionId, mentalModelsByTurn.length);
   }, [qualtricsParams.sessionId, mentalModelsByTurn.length]);
-
-  // Check if feedback should show (every 3 assistant messages) - temporarily disabled
-  const shouldShowFeedback = false;
-  // const shouldShowFeedback = (() => {
-  //   const assistantCount = messages.filter((m) => m.role === 'assistant').length;
-  //   return assistantCount > 0 && assistantCount % 3 === 0 && assistantCount > lastFeedbackAt && !isLoading;
-  // })();
 
   return {
     messages,
@@ -369,8 +344,6 @@ export function useChat({ qualtricsParams }: UseChatProps) {
     handleInductReactionChange,
     handleTypesSupportReactionChange,
     handleSaveHighlight,
-    handleFeedbackSubmit,
     signalChatComplete,
-    // shouldShowFeedback,
   };
 }
