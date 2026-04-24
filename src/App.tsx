@@ -5,8 +5,7 @@ import { MentalModelsPanel } from './components/MentalModelsPanel';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { HighlightPopup, type ActiveHighlight } from './components/HighlightPopup';
 import { useChat } from './hooks/useChat';
-import { parseQualtricsParams, sendTurnsToQualtrics } from './services/qualtrics';
-import type { TurnData } from './types';
+import { parseQualtricsParams } from './services/qualtrics';
 import './index.css';
 
 function App() {
@@ -19,14 +18,6 @@ function App() {
 
   // Highlight popup state
   const [activeHighlight, setActiveHighlight] = useState<ActiveHighlight | null>(null);
-
-  // Accumulate all turns for final Qualtrics export
-  const allTurns = useRef<TurnData[]>([]);
-
-  // Handle turn completion
-  const handleTurnComplete = useCallback((turn: TurnData) => {
-    allTurns.current.push(turn);
-  }, []);
 
   // Initialize chat hook
   const {
@@ -46,6 +37,8 @@ function App() {
     handleTypesSupportChange,
     handleInductConfirmDimension,
     handleTypesSupportConfirmDimension,
+    handleInductCancel,
+    handleTypesSupportCancel,
     handleInductReactionChange,
     handleTypesSupportReactionChange,
     handleSaveHighlight,
@@ -54,7 +47,6 @@ function App() {
     shouldShowFeedback,
   } = useChat({
     qualtricsParams,
-    onTurnComplete: handleTurnComplete,
   });
 
   // Handle text selection for highlights
@@ -98,8 +90,7 @@ function App() {
 
   // Handle chat completion (when user is done)
   const handleComplete = useCallback(() => {
-    // Send all turns to Qualtrics
-    sendTurnsToQualtrics(allTurns.current);
+    // Signal completion to Qualtrics (turn count is tracked internally)
     signalChatComplete();
   }, [signalChatComplete]);
 
@@ -147,9 +138,9 @@ function App() {
               {isLoadingMentalModel && (
                 <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
               )}
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-zinc-900 border border-zinc-200 rounded-lg bg-white whitespace-nowrap shadow-sm" style={{ fontFamily: "'Dosis', sans-serif" }}>
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fc5432' }} />
-                Review both sections
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-red-800 border border-red-200 rounded-lg bg-red-50 whitespace-nowrap shadow-sm" style={{ fontFamily: "'Dosis', sans-serif" }}>
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#dc2626' }} />
+                Please review both sections ⚠️
               </div>
               <button
                 onClick={() => section1Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -168,8 +159,8 @@ function App() {
 
           {/* Mental models content */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            <p className="text-[10px] text-zinc-400 leading-relaxed mb-3">
-              Updated after each response, based on what you said.
+            <p className="text-sm font-light text-black leading-relaxed mb-3">
+              Updated after each AI response, based on your conversation.
             </p>
             <MentalModelsPanel
               mentalModel={mentalModel}
@@ -181,6 +172,8 @@ function App() {
               onTypesSupportChange={handleTypesSupportChange}
               onInductConfirmDimension={handleInductConfirmDimension}
               onTypesSupportConfirmDimension={handleTypesSupportConfirmDimension}
+              onInductCancel={handleInductCancel}
+              onTypesSupportCancel={handleTypesSupportCancel}
               onInductReactionChange={handleInductReactionChange}
               onTypesSupportReactionChange={handleTypesSupportReactionChange}
               section1Ref={section1Ref}

@@ -10,10 +10,7 @@ const INDUCT_SERIES = [
 
 const TYPES_SUPPORT_SERIES = [
   { key: 'emotional_support', label: 'Emotional support', color: '#ef476f' },
-  { key: 'social_companionship', label: 'Social companionship', color: '#06d6a0' },
-  { key: 'belonging_support', label: 'Belonging support', color: '#3a0ca3' },
-  { key: 'information_guidance', label: 'Information & guidance', color: '#f8961e' },
-  { key: 'tangible_support', label: 'Tangible support', color: '#3a86ff' },
+  { key: 'information_guidance', label: 'Information & guidance', color: '#3a86ff' },
 ];
 
 interface ScoresChartProps {

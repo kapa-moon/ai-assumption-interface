@@ -1,11 +1,7 @@
 // Qualtrics integration via postMessage API
 import type { TurnData } from '../types';
-import LZString from 'lz-string';
 
 const QUALTRICS_ORIGIN = import.meta.env.VITE_QUALTRICS_PARENT_ORIGIN || '*';
-
-// Chunk size for Qualtrics Embedded Data (~12KB to stay under 16KB limit)
-const CHUNK_SIZE = 12000;
 
 export interface QualtricsParams {
   participantId: string;
@@ -35,48 +31,21 @@ function sendToQualtrics(type: string, payload: Record<string, unknown>): void {
   }
 }
 
-// Send a chunk of data to Qualtrics
-export function sendChunk(
-  fieldName: string,
-  chunk: string,
-  chunkIndex: number,
-  totalChunks: number
-): void {
-  sendToQualtrics('CHAT_DATA_CHUNK', {
-    fieldName,
-    chunk,
-    chunkIndex,
-    totalChunks,
+// Send a single turn data to Qualtrics (stores in chat_data_N field)
+export function sendTurnData(turn: TurnData): void {
+  const fieldName = `chat_data_${turn.turnIndex + 1}`; // 1-based indexing
+  const data = JSON.stringify(turn);
+  
+  sendToQualtrics('SET_EMBEDDED_DATA', {
+    field: fieldName,
+    value: data,
   });
 }
 
-// Compress and chunk turn data for Qualtrics
+// Keep for backward compatibility - sends all turns as individual fields
 export function sendTurnsToQualtrics(turns: TurnData[]): void {
-  const data = JSON.stringify({ turns });
-  
-  // Try compression first
-  const compressed = LZString.compressToBase64(data);
-  
-  // If compressed fits in one chunk, send it
-  if (compressed.length < CHUNK_SIZE) {
-    sendToQualtrics('CHAT_DATA_CHUNK', {
-      fieldName: 'chat_data_1',
-      chunk: compressed,
-      chunkIndex: 0,
-      totalChunks: 1,
-      compressed: true,
-    });
-    return;
-  }
-  
-  // Otherwise, split into chunks
-  const chunks: string[] = [];
-  for (let i = 0; i < compressed.length; i += CHUNK_SIZE) {
-    chunks.push(compressed.slice(i, i + CHUNK_SIZE));
-  }
-  
-  chunks.forEach((chunk, idx) => {
-    sendChunk(`chat_data_${idx + 1}`, chunk, idx, chunks.length);
+  turns.forEach((turn) => {
+    sendTurnData(turn);
   });
 }
 
@@ -93,15 +62,9 @@ export function signalCompletion(
   });
 }
 
-// Send a single turn update (for real-time logging)
+// Send a single turn update (stores in chat_data_N field)
 export function sendTurnUpdate(turn: TurnData): void {
-  const data = JSON.stringify(turn);
-  const compressed = LZString.compressToBase64(data);
-  
-  sendToQualtrics('TURN_UPDATE', {
-    turnIndex: turn.turnIndex,
-    compressedData: compressed,
-  });
+  sendTurnData(turn);
 }
 
 // Listen for messages from Qualtrics (optional, for bidirectional)

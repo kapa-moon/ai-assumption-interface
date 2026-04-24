@@ -1,9 +1,16 @@
 // API route for logging turns to Neon database (dev/backup)
-import { db } from '../../src/lib/db';
-import { turns, sessions } from '../../src/lib/schema';
+import { db } from '../src/lib/db';
+import { turns, sessions } from '../src/lib/schema';
 import { eq } from 'drizzle-orm';
 
-export async function POST(request: Request) {
+export default async function handler(request: Request) {
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const body = await request.json();
     const { sessionId, turnData } = body;
@@ -58,3 +65,7 @@ export async function POST(request: Request) {
     });
   }
 }
+
+export const config = {
+  runtime: 'edge',
+};

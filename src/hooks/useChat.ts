@@ -1,15 +1,14 @@
 // Main chat hook managing messages, streaming, and mental models
 // Now calls secure serverless API (api/chat) instead of Azure directly
 import { useState, useCallback, useRef } from 'react';
-import { sendTurnUpdate, signalCompletion } from '../services/qualtrics';
+import { sendTurnData, signalCompletion } from '../services/qualtrics';
 import type { Message, CombinedMentalModel, TurnData, Highlight, QualtricsParams } from '../types';
 
 interface UseChatProps {
   qualtricsParams: QualtricsParams;
-  onTurnComplete?: (turn: TurnData) => void;
 }
 
-export function useChat({ qualtricsParams, onTurnComplete }: UseChatProps) {
+export function useChat({ qualtricsParams }: UseChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -143,9 +142,8 @@ export function useChat({ qualtricsParams, onTurnComplete }: UseChatProps) {
         highlights: [...turnHighlights.current],
       };
 
-      // Send to Qualtrics
-      sendTurnUpdate(turnData);
-      onTurnComplete?.(turnData);
+      // Send to Qualtrics (stores in chat_data_N field)
+      sendTurnData(turnData);
 
       // Reset live state
       setLiveInductUser(null);
@@ -165,7 +163,7 @@ export function useChat({ qualtricsParams, onTurnComplete }: UseChatProps) {
       setIsLoading(false);
       setIsLoadingMentalModel(false);
     }
-  }, [input, isLoading, messages, mentalModelsByTurn, mentalModel, liveInductUser, liveTypesSupportUser, onTurnComplete]);
+  }, [input, isLoading, messages, mentalModelsByTurn, mentalModel, liveInductUser, liveTypesSupportUser]);
 
   // Handle induct score change
   const handleInductChange = useCallback((key: string, score: number) => {
@@ -182,6 +180,26 @@ export function useChat({ qualtricsParams, onTurnComplete }: UseChatProps) {
       return { ...base, [key]: score };
     });
   }, [mentalModelsByTurn]);
+
+  // Handle induct cancel - remove the key from live state without saving
+  const handleInductCancel = useCallback((key: string) => {
+    setLiveInductUser((prev) => {
+      if (!prev) return null;
+      const next = { ...prev };
+      delete next[key];
+      return Object.keys(next).length > 0 ? next : null;
+    });
+  }, []);
+
+  // Handle types support cancel - remove the key from live state without saving
+  const handleTypesSupportCancel = useCallback((key: string) => {
+    setLiveTypesSupportUser((prev) => {
+      if (!prev) return null;
+      const next = { ...prev };
+      delete next[key];
+      return Object.keys(next).length > 0 ? next : null;
+    });
+  }, []);
 
   // Handle induct confirm
   const handleInductConfirmDimension = useCallback((key: string, reason: string) => {
@@ -345,6 +363,8 @@ export function useChat({ qualtricsParams, onTurnComplete }: UseChatProps) {
     handleTypesSupportChange,
     handleInductConfirmDimension,
     handleTypesSupportConfirmDimension,
+    handleInductCancel,
+    handleTypesSupportCancel,
     handleInductReactionChange,
     handleTypesSupportReactionChange,
     handleSaveHighlight,

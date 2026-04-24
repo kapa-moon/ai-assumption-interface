@@ -175,10 +175,11 @@ function extractFirstJson(raw: string): unknown | null {
 
 // Server-side Azure API call
 async function callAzureOpenAI(prompt: string): Promise<unknown> {
-  const AZURE_ENDPOINT = process.env.AZURE_ENDPOINT;
-  const AZURE_KEY = process.env.AZURE_KEY;
-  const DEPLOYMENT = process.env.AZURE_DEPLOYMENT || 'gpt-4o';
-  const API_VERSION = process.env.AZURE_API_VERSION || '2024-12-01-preview';
+  // In Edge Functions, env vars are available as globals
+  const AZURE_ENDPOINT = (globalThis as any).AZURE_ENDPOINT;
+  const AZURE_KEY = (globalThis as any).AZURE_KEY;
+  const DEPLOYMENT = (globalThis as any).AZURE_DEPLOYMENT || 'gpt-4o';
+  const API_VERSION = (globalThis as any).AZURE_API_VERSION || '2024-12-01-preview';
 
   if (!AZURE_ENDPOINT || !AZURE_KEY) {
     throw new Error('Azure OpenAI credentials not configured');

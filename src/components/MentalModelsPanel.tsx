@@ -13,10 +13,7 @@ const INDUCT_SERIES = [
 
 const TYPES_SUPPORT_SERIES = [
   { key: 'emotional_support', label: 'Emotional support', color: '#ef476f' },
-  { key: 'social_companionship', label: 'Social companionship', color: '#06d6a0' },
-  { key: 'belonging_support', label: 'Belonging support', color: '#3a0ca3' },
-  { key: 'information_guidance', label: 'Information & guidance', color: '#f8961e' },
-  { key: 'tangible_support', label: 'Tangible support', color: '#3a86ff' },
+  { key: 'information_guidance', label: 'Information & guidance', color: '#3a86ff' },
 ] as const;
 
 interface MentalModelsPanelProps {
@@ -29,6 +26,8 @@ interface MentalModelsPanelProps {
   onTypesSupportChange: (key: string, score: number) => void;
   onInductConfirmDimension: (key: string, reason: string) => void;
   onTypesSupportConfirmDimension: (key: string, reason: string) => void;
+  onInductCancel: (key: string) => void;
+  onTypesSupportCancel: (key: string) => void;
   onInductReactionChange: (key: string, dir: 'up' | 'down' | null) => void;
   onTypesSupportReactionChange: (key: string, dir: 'up' | 'down' | null) => void;
   section1Ref?: React.RefObject<HTMLDivElement | null>;
@@ -71,6 +70,7 @@ interface ScoreSectionProps {
   isLoading: boolean;
   onUserScoreChange: (key: string, score: number) => void;
   onConfirmDimension: (key: string, reason: string) => void;
+  onCancel: (key: string) => void;
   onReactionChange: (key: string, dir: 'up' | 'down' | null) => void;
 }
 
@@ -87,6 +87,7 @@ function ScoreSection({
   isLoading,
   onUserScoreChange,
   onConfirmDimension,
+  onCancel,
   onReactionChange,
 }: ScoreSectionProps) {
   const [reasons, setReasons] = useState<Record<string, string>>({});
@@ -204,7 +205,7 @@ function ScoreSection({
                             delete n[s.key];
                             return n;
                           });
-                          onUserScoreChange(s.key, aiScore);
+                          onCancel(s.key);
                         }}
                         title="Cancel change"
                         className="flex-shrink-0 w-7 h-7 flex items-center justify-center bg-white rounded text-red-500 font-bold text-[13px]"
@@ -215,7 +216,7 @@ function ScoreSection({
                       <div className="relative flex-1">
                         <input
                           type="text"
-                          className="w-full text-[11px] rounded border border-zinc-200 py-1.5 pl-2.5 pr-6 bg-white focus:outline-none focus:border-zinc-400"
+                          className="w-full text-sm rounded border border-zinc-200 py-1.5 pl-2.5 pr-6 bg-white focus:outline-none focus:border-zinc-400"
                           style={{ fontFamily: "'Dosis', sans-serif" }}
                           placeholder="Why did you make this change?"
                           value={reasons[s.key] ?? ''}
@@ -229,7 +230,7 @@ function ScoreSection({
                             }
                           }}
                         />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zinc-300 pointer-events-none select-none">
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-zinc-300 pointer-events-none select-none">
                           ↵
                         </span>
                       </div>
@@ -257,13 +258,15 @@ export function MentalModelsPanel({
   onTypesSupportChange,
   onInductConfirmDimension,
   onTypesSupportConfirmDimension,
+  onInductCancel,
+  onTypesSupportCancel,
   onInductReactionChange,
   onTypesSupportReactionChange,
   section1Ref,
   section2Ref,
 }: MentalModelsPanelProps) {
   if (!mentalModel && !isLoading) {
-    return <p className="text-xs text-zinc-400 mt-2">Mental model will appear here after the first response.</p>;
+    return null;
   }
 
   const inductBeliefs = mentalModel?.induct?.mental_model?.beliefs as
@@ -308,6 +311,7 @@ export function MentalModelsPanel({
           isLoading={isLoading}
           onUserScoreChange={onInductChange}
           onConfirmDimension={onInductConfirmDimension}
+          onCancel={onInductCancel}
           onReactionChange={onInductReactionChange}
         />
       </div>
@@ -328,6 +332,7 @@ export function MentalModelsPanel({
           isLoading={isLoading}
           onUserScoreChange={onTypesSupportChange}
           onConfirmDimension={onTypesSupportConfirmDimension}
+          onCancel={onTypesSupportCancel}
           onReactionChange={onTypesSupportReactionChange}
         />
       </div>
