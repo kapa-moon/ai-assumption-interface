@@ -130,7 +130,7 @@ function App() {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-zinc-200 flex-shrink-0">
             <span style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, color: '#000', fontSize: '16px', lineHeight: '1.35' }}>
-              What does the AI assume about you<br />when answering your question?
+              What does the AI assume about you when answering your questions?
             </span>
             <div className="flex items-center gap-2 ml-3 flex-shrink-0">
               {isLoadingMentalModel && (
