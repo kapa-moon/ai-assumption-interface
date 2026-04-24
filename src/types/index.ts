@@ -72,8 +72,8 @@ export interface TurnData {
   inductReactions?: Record<string, "up" | "down">;
   typesSupportReactions?: Record<string, "up" | "down">;
   highlights?: Highlight[];
-  feelingScore?: number;
-  helpfulnessScore?: number;
+  // feelingScore?: number;
+  // helpfulnessScore?: number;
 }
 
 // Qualtrics integration

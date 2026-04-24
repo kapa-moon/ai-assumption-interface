@@ -49,8 +49,8 @@ export default async function handler(request: Request) {
       inductReactions: turnData.inductReactions || null,
       typesSupportReactions: turnData.typesSupportReactions || null,
       highlights: turnData.highlights || null,
-      feelingScore: turnData.feelingScore || null,
-      helpfulnessScore: turnData.helpfulnessScore || null,
+      // feelingScore: turnData.feelingScore || null,
+      // helpfulnessScore: turnData.helpfulnessScore || null,
     });
 
     return new Response(JSON.stringify({ success: true }), {

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { ChatInterface } from './components/ChatInterface';
 import { MentalModelsPanel } from './components/MentalModelsPanel';
-import { FeedbackWidget } from './components/FeedbackWidget';
+// import { FeedbackWidget } from './components/FeedbackWidget';
 import { HighlightPopup, type ActiveHighlight } from './components/HighlightPopup';
 import { useChat } from './hooks/useChat';
 import { parseQualtricsParams } from './services/qualtrics';
@@ -44,7 +44,7 @@ function App() {
     handleSaveHighlight,
     handleFeedbackSubmit,
     signalChatComplete,
-    shouldShowFeedback,
+    // shouldShowFeedback,
   } = useChat({
     qualtricsParams,
   });
@@ -105,9 +105,9 @@ function App() {
           <span className="text-xs text-zinc-500">Session: {qualtricsParams.sessionId.slice(0, 8)}</span>
           <button
             onClick={handleComplete}
-            className="text-xs px-3 py-1.5 bg-zinc-900 text-white rounded hover:bg-zinc-700 transition-colors"
+            className="text-sm font-bold px-4 py-2 bg-[#ff4d4d] text-white rounded hover:bg-[#ff3333] transition-colors shadow-sm"
           >
-            Complete
+            Complete Chat
           </button>
         </div>
       </header>
@@ -138,7 +138,7 @@ function App() {
               {isLoadingMentalModel && (
                 <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
               )}
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-red-800 border border-red-200 rounded-lg bg-red-50 whitespace-nowrap shadow-sm" style={{ fontFamily: "'Dosis', sans-serif" }}>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-800 border border-red-200 rounded-lg bg-red-50 whitespace-nowrap shadow-sm" style={{ fontFamily: "'Dosis', sans-serif" }}>
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#dc2626' }} />
                 Please review both sections ⚠️
               </div>
@@ -183,10 +183,10 @@ function App() {
         </div>
       </div>
 
-      {/* Feedback widget */}
-      {shouldShowFeedback && (
+      {/* Feedback widget - temporarily disabled */}
+      {/* {false && (
         <FeedbackWidget key={messages.filter((m) => m.role === 'assistant').length} onSubmit={handleFeedbackSubmit} />
-      )}
+      )} */}
 
       {/* Highlight popup */}
       {activeHighlight && (

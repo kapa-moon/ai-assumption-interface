@@ -34,9 +34,9 @@ export const turns = pgTable("turns", {
   // Inline feedback (highlights)
   highlights: jsonb("highlights"),
   
-  // Turn-level feedback (feeling/helpfulness scores)
-  feelingScore: integer("feeling_score"),
-  helpfulnessScore: integer("helpfulness_score"),
+  // Turn-level feedback (feeling/helpfulness scores) - temporarily disabled
+  // feelingScore: integer("feeling_score"),
+  // helpfulnessScore: integer("helpfulness_score"),
   
   createdAt: timestamp("created_at").defaultNow(),
 });
