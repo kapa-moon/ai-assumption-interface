@@ -4,6 +4,31 @@ import { useState, useCallback, useRef } from 'react';
 import { sendTurnData, signalCompletion } from '../services/qualtrics';
 import type { Message, CombinedMentalModel, TurnData, Highlight, QualtricsParams } from '../types';
 
+// Build a complete TurnData record for a past turn, merging AI inference with
+// user reactions, confirmed score adjustments, reasons, and highlights.
+// messages layout: [u0, a0, u1, a1, ...] so turn N = messages[N*2], messages[N*2+1]
+function buildCompleteTurnData(
+  turnIdx: number,
+  messages: Message[],
+  mm: CombinedMentalModel,
+  highlights: Highlight[]
+): TurnData {
+  return {
+    turnIndex: turnIdx,
+    userMessage: messages[turnIdx * 2]?.content ?? '',
+    assistantMessage: messages[turnIdx * 2 + 1]?.content ?? '',
+    inductAI: mm.induct,
+    typesSupportAI: mm.typesSupport,
+    inductUser: mm.inductUser ?? undefined,
+    typesSupportUser: mm.typesSupportUser ?? undefined,
+    inductUserReasons: mm.inductUserReasons ?? undefined,
+    typesSupportUserReasons: mm.typesSupportUserReasons ?? undefined,
+    inductReactions: mm.inductUserReactions ?? undefined,
+    typesSupportReactions: mm.typesSupportUserReactions ?? undefined,
+    highlights: highlights.length > 0 ? highlights : undefined,
+  };
+}
+
 interface UseChatProps {
   qualtricsParams: QualtricsParams;
 }
@@ -37,6 +62,23 @@ export function useChat({ qualtricsParams }: UseChatProps) {
     setInput('');
     setIsLoading(true);
     setIsLoadingMentalModel(true);
+
+    // Flush the PREVIOUS turn's complete data before this send.
+    // This overwrites the partial record (AI-only) written when that turn's
+    // AI response arrived, adding reactions, confirmed adjustments, reasons,
+    // and highlights the user gave while reviewing that response.
+    if (mentalModelsByTurn.length > 0) {
+      const prevIdx = mentalModelsByTurn.length - 1;
+      sendTurnData(
+        buildCompleteTurnData(prevIdx, messages, mentalModelsByTurn[prevIdx], turnHighlights.current)
+      );
+      turnHighlights.current = [];
+    }
+
+    // Discard any unconfirmed live drags — confirmed scores are already
+    // persisted in mentalModelsByTurn and will be captured by the flush above.
+    setLiveInductUser(null);
+    setLiveTypesSupportUser(null);
 
     const userMessage: Message = { role: 'user', content: question, createdAt: new Date().toISOString() };
     const newMessages = [...messages, userMessage];
@@ -132,26 +174,17 @@ export function useChat({ qualtricsParams }: UseChatProps) {
         setMentalModelsByTurn((prev) => [...prev, receivedMentalModel!]);
       }
 
-      // Build turn data
+      // Write initial record for this turn (AI inference only).
+      // User reactions / score adjustments / highlights will be added
+      // when the NEXT message is sent (or at completion), overwriting this field.
       const currentMM = receivedMentalModel || mentalModel;
-      const turnData: TurnData = {
+      sendTurnData({
         turnIndex: mentalModelsByTurn.length,
         userMessage: question,
         assistantMessage: fullResponse,
         inductAI: currentMM?.induct,
         typesSupportAI: currentMM?.typesSupport,
-        inductUser: liveInductUser ? { ...liveInductUser } : undefined,
-        typesSupportUser: liveTypesSupportUser ? { ...liveTypesSupportUser } : undefined,
-        highlights: [...turnHighlights.current],
-      };
-
-      // Send to Qualtrics (stores in chat_data_N field)
-      sendTurnData(turnData);
-
-      // Reset live state
-      setLiveInductUser(null);
-      setLiveTypesSupportUser(null);
-      turnHighlights.current = [];
+      });
 
     } catch (err) {
       console.error('Error in chat:', err);
@@ -166,7 +199,7 @@ export function useChat({ qualtricsParams }: UseChatProps) {
       setIsLoading(false);
       setIsLoadingMentalModel(false);
     }
-  }, [input, isLoading, messages, mentalModelsByTurn, mentalModel, liveInductUser, liveTypesSupportUser]);
+  }, [input, isLoading, messages, mentalModelsByTurn, mentalModel]);
 
   // Handle induct score change
   const handleInductChange = useCallback((key: string, score: number) => {
@@ -320,10 +353,17 @@ export function useChat({ qualtricsParams }: UseChatProps) {
     setHighlightsByMessage((prev) => ({ ...prev, [msgIdx]: (prev[msgIdx] ?? 0) + 1 }));
   }, []);
 
-  // Signal completion
+  // Signal completion — flush the final turn's complete data first
   const signalChatComplete = useCallback(() => {
+    if (mentalModelsByTurn.length > 0) {
+      const lastIdx = mentalModelsByTurn.length - 1;
+      sendTurnData(
+        buildCompleteTurnData(lastIdx, messages, mentalModelsByTurn[lastIdx], turnHighlights.current)
+      );
+      turnHighlights.current = [];
+    }
     signalCompletion(qualtricsParams.sessionId, mentalModelsByTurn.length);
-  }, [qualtricsParams.sessionId, mentalModelsByTurn.length]);
+  }, [qualtricsParams.sessionId, mentalModelsByTurn, messages]);
 
   return {
     messages,

@@ -101,7 +101,7 @@ function ScoreSection({
       delete n[key];
       return n;
     });
-    setLastTouchedKey((prev) => (prev === key ? null : prev));
+    setLastTouchedKey(null);
   };
 
   const toggleReaction = (key: string, dir: 'up' | 'down') => {
@@ -134,13 +134,31 @@ function ScoreSection({
           const aiScore = typeof item?.score === 'number' ? item.score : null;
           const userScore = userBeliefs?.[s.key] ?? null;
           const hasLiveChange = (liveBeliefs?.[s.key] ?? null) !== null;
-          // Only show confirm UI for the most recently touched dimension
-          const isLive = hasLiveChange && (lastTouchedKey === null || lastTouchedKey === s.key);
+          // Only show confirm UI for the single most recently touched dimension
+          const isLive = hasLiveChange && lastTouchedKey === s.key;
+          // Pending = live change exists but not currently expanded (another key is active)
+          const isPending = hasLiveChange && !isLive;
 
           return (
             <div key={s.key}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="font-medium text-zinc-700" style={{ fontSize: 13 }}>{s.label}</span>
+                <span className="flex items-center gap-1.5 font-medium text-zinc-700" style={{ fontSize: 13 }}>
+                  {s.label}
+                  {isPending && (
+                    <span
+                      title="Unsaved change — drag again to confirm"
+                      style={{
+                        display: 'inline-block',
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        backgroundColor: s.color,
+                        flexShrink: 0,
+                        opacity: 0.75,
+                      }}
+                    />
+                  )}
+                </span>
                 {isLoading && <span className="text-[9px] text-zinc-300 animate-pulse">updating</span>}
               </div>
               
@@ -207,6 +225,7 @@ function ScoreSection({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
+                              e.stopPropagation();
                               handleConfirm(s.key);
                             }
                           }}

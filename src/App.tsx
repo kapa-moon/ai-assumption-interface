@@ -87,17 +87,16 @@ function App() {
     handleSaveHighlight(text, msgIdx, reaction, comment);
   }, [handleSaveHighlight]);
 
-  // Count reactions on the most recent turn to determine if input should be locked
+  // Lock input until the user has given ≥2 thumbs in section 1 (INDUCT)
+  // and ≥1 thumb in section 2 (Types of Support) for the current turn
   const lastMM = mentalModelsByTurn[mentalModelsByTurn.length - 1];
-  const currentTurnReactionCount =
-    Object.keys(lastMM?.inductUserReactions ?? {}).length +
-    Object.keys(lastMM?.typesSupportUserReactions ?? {}).length;
-  const REQUIRED_REACTIONS = 3;
+  const inductReactionCount = Object.keys(lastMM?.inductUserReactions ?? {}).length;
+  const typesSupportReactionCount = Object.keys(lastMM?.typesSupportUserReactions ?? {}).length;
   const isInputLocked =
     !isLoading &&
     !isLoadingMentalModel &&
     mentalModelsByTurn.length > 0 &&
-    currentTurnReactionCount < REQUIRED_REACTIONS;
+    (inductReactionCount < 2 || typesSupportReactionCount < 1);
 
   const MIN_TURNS = 5;
   const canComplete = mentalModelsByTurn.length >= MIN_TURNS;

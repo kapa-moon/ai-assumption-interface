@@ -181,7 +181,7 @@ export function ChatInterface({
               className="text-center text-zinc-600 leading-snug px-4"
               style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, fontSize: 15 }}
             >
-              Please review the AI assumption scores on the right<br />before sending your next message
+              Give at least <strong>2 thumbs</strong> in section 1 and<br /><strong>1 thumb</strong> in section 2 before continuing
             </p>
           </div>
         )}
