@@ -148,11 +148,32 @@ Conversation so far:
 ${alias} now says:
 """${newUserText}"""${updateLine}First, output your mental model of ${alias}. Estimate structured beliefs about the extent to which ${alias} is seeking different types of support:
 
-1. **Emotional Support** - Seeking opportunities for confiding, sympathetic listening, or caring behaviors
-2. **Social Contact and Companionship** - Seeking positive social interaction
-3. **Belonging Support** - Seeking connection to a group or community
-4. **Information and Guidance Support** - Seeking knowledge, advice, or problem-solving help
-5. **Tangible Support** - Seeking practical or instrumental assistance
+1. **Emotional Support** - Seeking opportunities for confiding, sympathetic listening, or caring behaviors:
+   - Confiding/listening: seeking empathetic understanding or wanting someone to listen to private feelings or problems
+   - Affection: seeking expressions of love, care, or emotional closeness
+   - Esteem support: seeking validation of self-worth, acceptance despite difficulties
+   - Being there: seeking unconditional availability or presence
+   - Comforting touch: seeking physical comfort or affection
+
+2. **Social Contact and Companionship** - Seeking positive social interaction:
+   - Companionship: wanting to spend time with others, do activities together
+   - Positive interaction: seeking to joke, talk about interests, engage in diversionary activities
+   - Shared activities: wanting to do fun things with others
+
+3. **Belonging Support** - Seeking connection to a group or community:
+   - Social integration: wanting to feel part of a group with common interests
+   - Group inclusion: seeking comfort, security, or identity through group membership
+   - Sense of belonging: wanting to feel included and connected
+
+4. **Information and Guidance Support** - Seeking knowledge, advice, or problem-solving help:
+   - Advice/guidance: seeking solutions, feedback, or direction
+   - Information: seeking facts, explanations, or understanding of situations
+   - Cognitive guidance: seeking help in defining or coping with problems
+
+5. **Tangible Support** - Seeking practical or instrumental assistance:
+   - Material aid: seeking financial help, resources, or physical objects
+   - Practical assistance: seeking help with tasks, chores, or concrete actions
+   - Reliable alliance: seeking assurance that others will provide tangible help
 
 Treat these as *probabilistic beliefs* that may co-exist. These dimensions are independent and do NOT need to sum to 1. Each score should be between 0 and 1.
 
@@ -270,9 +291,100 @@ async function inferTypesSupportMentalModel(
   }
 }
 
-// Build system prompt for the assistant
-function buildSystemPrompt(alias: string): string {
-  return `You are a helpful, honest AI assistant having a conversation with ${alias}. Be clear, thoughtful, and balanced. Adapt your tone to what the conversation calls for.`;
+interface LastTurnModel {
+  inductAI?: unknown;
+  typesSupportAI?: unknown;
+  inductUser?: unknown;
+  typesSupportUser?: unknown;
+}
+
+// Resolve a score: user-adjusted flat map wins over AI nested object
+// inductUser shape: Record<string, number> e.g. { validation_seeking: 0.7 }
+// inductAI shape:  { mental_model: { beliefs: { validation_seeking: { score: 0.7 } } } }
+function resolveInductScore(
+  key: string,
+  inductUser: unknown,
+  inductAI: unknown
+): number | null {
+  const userMap = inductUser as Record<string, number> | null | undefined;
+  if (userMap && typeof userMap[key] === 'number') return userMap[key];
+  const ai = inductAI as any;
+  const score = ai?.mental_model?.beliefs?.[key]?.score;
+  return typeof score === 'number' ? score : null;
+}
+
+// typesSupportUser shape: Record<string, number> e.g. { emotional_support: 0.3 }
+// typesSupportAI shape:  { mental_model: { support_seeking: { emotional_support: { score: 0.3 } } } }
+function resolveTypesSupportScore(
+  key: string,
+  typesSupportUser: unknown,
+  typesSupportAI: unknown
+): number | null {
+  const userMap = typesSupportUser as Record<string, number> | null | undefined;
+  if (userMap && typeof userMap[key] === 'number') return userMap[key];
+  const ai = typesSupportAI as any;
+  const score = ai?.mental_model?.support_seeking?.[key]?.score;
+  return typeof score === 'number' ? score : null;
+}
+
+// Format mental model scores into a readable preamble for the AI
+function buildMentalModelPreamble(model: LastTurnModel): string {
+  const lines: string[] = [];
+
+  const inductKeys: [string, string][] = [
+    ['validation_seeking', 'Validation seeking'],
+    ['user_rightness', 'User is likely right'],
+    ['user_information_advantage', 'User has information advantage'],
+    ['objectivity_seeking', 'Objectivity seeking'],
+  ];
+
+  const inductLines: string[] = [];
+  for (const [key, label] of inductKeys) {
+    const score = resolveInductScore(key, model.inductUser, model.inductAI);
+    if (score != null) inductLines.push(`- ${label}: ${score.toFixed(2)}`);
+  }
+  if (inductLines.length) {
+    lines.push('[User assumptions — epistemic & validation]');
+    lines.push(...inductLines);
+  }
+
+  const supportKeys: [string, string][] = [
+    ['emotional_support', 'Emotional support'],
+    ['social_companionship', 'Social companionship'],
+    ['belonging_support', 'Belonging support'],
+    ['information_guidance', 'Information & guidance'],
+    ['tangible_support', 'Tangible support'],
+  ];
+
+  const supportLines: string[] = [];
+  for (const [key, label] of supportKeys) {
+    const score = resolveTypesSupportScore(key, model.typesSupportUser, model.typesSupportAI);
+    if (score != null) supportLines.push(`- ${label}: ${score.toFixed(2)}`);
+  }
+  if (supportLines.length) {
+    lines.push('[User assumptions — types of support sought]');
+    lines.push(...supportLines);
+  }
+
+  return lines.join('\n');
+}
+
+// Build system prompt for the assistant, optionally shaped by last turn's mental model
+function buildSystemPrompt(alias: string, lastModel?: LastTurnModel): string {
+  const base = `You are a helpful, honest AI assistant having a conversation with ${alias}. Be clear, thoughtful, and balanced. Adapt your tone to what the conversation calls for.`;
+
+  if (!lastModel) return base;
+
+  const preamble = buildMentalModelPreamble(lastModel);
+  if (!preamble) return base;
+
+  return `${base}
+
+Before responding, use this inferred model of ${alias} to shape your tone and response style. Do NOT restate these scores or mention them explicitly.
+
+${preamble}
+
+Use these scores to calibrate how much to validate vs. challenge, how much emotional support to offer vs. information, and how much to defer to ${alias}'s knowledge vs. provide your own perspective.`;
 }
 
 export default async function handler(request: Request) {
@@ -293,13 +405,6 @@ export default async function handler(request: Request) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
-    // Build system prompt
-    const systemPrompt = buildSystemPrompt(alias || 'User');
-    const apiMessages: ChatMessage[] = [
-      { role: 'system', content: systemPrompt },
-      ...chatMessages,
-    ];
 
     // Build prior turns context for mental model inference
     const completedMessages = chatMessages.slice(0, -1);
@@ -322,6 +427,28 @@ export default async function handler(request: Request) {
         i++;
       }
     }
+
+    // Build system prompt — inject last turn's mental model to shape AI response
+    // User-adjusted scores take priority over AI-inferred scores
+    const lastPrior = priorMentalModels?.length
+      ? (priorMentalModels[priorMentalModels.length - 1] as { induct?: unknown; typesSupport?: unknown })
+      : null;
+    const lastUserAdjusted = userAdjustedMentalModels?.length
+      ? (userAdjustedMentalModels[userAdjustedMentalModels.length - 1] as { inductUser?: unknown; typesSupportUser?: unknown })
+      : null;
+    const lastModel: LastTurnModel | undefined = (lastPrior || lastUserAdjusted) ? {
+      inductAI: lastPrior?.induct,
+      typesSupportAI: lastPrior?.typesSupport,
+      inductUser: lastUserAdjusted?.inductUser,
+      typesSupportUser: lastUserAdjusted?.typesSupportUser,
+    } : undefined;
+
+    const systemPrompt = buildSystemPrompt(alias || 'User', lastModel);
+    console.log('[API/handler] System prompt (first 300 chars):', systemPrompt.substring(0, 300));
+    const apiMessages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...chatMessages,
+    ];
 
     const lastUserMsg = chatMessages[chatMessages.length - 1];
 
