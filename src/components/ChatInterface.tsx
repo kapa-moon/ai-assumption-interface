@@ -13,6 +13,10 @@ interface ChatInterfaceProps {
   onTextSelect: () => void;
   highlightsByMessage: Record<number, number>;
   loadingConversation: boolean;
+  isInputLocked?: boolean;
+  reactionCount?: number;
+  requiredReactions?: number;
+  isAtLimit?: boolean;
 }
 
 export function ChatInterface({
@@ -25,6 +29,10 @@ export function ChatInterface({
   onTextSelect,
   highlightsByMessage,
   loadingConversation,
+  isInputLocked = false,
+  reactionCount = 0,
+  requiredReactions = 3,
+  isAtLimit = false,
 }: ChatInterfaceProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -133,7 +141,68 @@ export function ChatInterface({
       </div>
 
       {/* Input */}
-      <div className="px-6 py-4 bg-white border-t border-zinc-200">
+      <div className="relative px-6 py-4 bg-white border-t border-zinc-200">
+        {/* At-limit overlay */}
+        {isAtLimit && (
+          <div
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2"
+            style={{
+              background: 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff4d4d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p
+              className="text-center text-zinc-700 leading-snug px-4"
+              style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, fontSize: 13 }}
+            >
+              You've reached the maximum of 20 turns.<br />Please click <span style={{ color: '#ff4d4d' }}>Complete Chat</span> to continue.
+            </p>
+          </div>
+        )}
+
+        {/* Lock overlay */}
+        {!isAtLimit && isInputLocked && (
+          <div
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-b-none"
+            style={{
+              background: 'rgba(255, 255, 255, 0.88)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+            }}
+          >
+            {/* Lock icon */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#71717a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <p
+              className="text-center text-zinc-600 leading-snug px-4"
+              style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, fontSize: 13 }}
+            >
+              Please review the AI assumption scores on the right<br />before sending your next message
+            </p>
+            {/* Progress pips */}
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {Array.from({ length: requiredReactions }).map((_, i) => (
+                <span
+                  key={i}
+                  className="w-2 h-2 rounded-full transition-colors duration-200"
+                  style={{ backgroundColor: i < reactionCount ? '#16a34a' : '#d4d4d8' }}
+                />
+              ))}
+              <span className="ml-1 text-[11px] text-zinc-400" style={{ fontFamily: "'Dosis', sans-serif" }}>
+                {reactionCount}/{requiredReactions} reactions given
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="relative">
           <textarea
             ref={textareaRef}
@@ -146,6 +215,7 @@ export function ChatInterface({
               resizeTextarea();
             }}
             onKeyDown={handleKeyDown}
+            disabled={isInputLocked || isAtLimit}
           />
           <button
             onClick={() => {
@@ -155,7 +225,7 @@ export function ChatInterface({
                 textareaRef.current.style.overflowY = 'hidden';
               }
             }}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || isInputLocked || isAtLimit || !input.trim()}
             className="absolute right-3 bottom-3 p-1 text-zinc-900 hover:text-zinc-500 transition-colors disabled:opacity-30 flex items-center justify-center"
             aria-label="Send"
           >

@@ -26,9 +26,12 @@ export function useChat({ qualtricsParams }: UseChatProps) {
   const [highlightsByMessage, setHighlightsByMessage] = useState<Record<number, number>>({});
   const turnHighlights = useRef<Highlight[]>([]);
 
+  const MAX_TURNS = 20;
+
   // Handle sending a message
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;
+    if (mentalModelsByTurn.length >= MAX_TURNS) return;
 
     const question = input.trim();
     setInput('');
@@ -334,6 +337,7 @@ export function useChat({ qualtricsParams }: UseChatProps) {
     liveInductUser,
     liveTypesSupportUser,
     highlightsByMessage,
+    isAtLimit: mentalModelsByTurn.length >= MAX_TURNS,
     handleSend,
     handleInductChange,
     handleTypesSupportChange,

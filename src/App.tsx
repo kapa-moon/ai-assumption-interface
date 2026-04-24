@@ -43,6 +43,7 @@ function App() {
     handleTypesSupportReactionChange,
     handleSaveHighlight,
     signalChatComplete,
+    isAtLimit,
   } = useChat({
     qualtricsParams,
   });
@@ -86,11 +87,29 @@ function App() {
     handleSaveHighlight(text, msgIdx, reaction, comment);
   }, [handleSaveHighlight]);
 
+  // Count reactions on the most recent turn to determine if input should be locked
+  const lastMM = mentalModelsByTurn[mentalModelsByTurn.length - 1];
+  const currentTurnReactionCount =
+    Object.keys(lastMM?.inductUserReactions ?? {}).length +
+    Object.keys(lastMM?.typesSupportUserReactions ?? {}).length;
+  const REQUIRED_REACTIONS = 3;
+  const isInputLocked =
+    !isLoading &&
+    !isLoadingMentalModel &&
+    mentalModelsByTurn.length > 0 &&
+    currentTurnReactionCount < REQUIRED_REACTIONS;
+
+  const MIN_TURNS = 5;
+  const canComplete = mentalModelsByTurn.length >= MIN_TURNS;
+
   // Handle chat completion (when user is done)
   const handleComplete = useCallback(() => {
-    // Signal completion to Qualtrics (turn count is tracked internally)
+    if (!canComplete) {
+      alert(`Please complete at least ${MIN_TURNS} turns before finishing. You have completed ${mentalModelsByTurn.length} so far.`);
+      return;
+    }
     signalChatComplete();
-  }, [signalChatComplete]);
+  }, [canComplete, mentalModelsByTurn.length, signalChatComplete]);
 
   return (
     <div className="flex flex-col h-screen bg-zinc-50">
@@ -103,7 +122,8 @@ function App() {
           <span className="text-xs text-zinc-500">Session: {qualtricsParams.sessionId.slice(0, 8)}</span>
           <button
             onClick={handleComplete}
-            className="text-sm font-bold px-4 py-2 bg-[#ff4d4d] text-white rounded hover:bg-[#ff3333] transition-colors shadow-sm"
+            className="text-sm font-bold px-4 py-2 text-white rounded transition-colors shadow-sm"
+            style={{ backgroundColor: canComplete ? '#ff4d4d' : '#d4d4d8', cursor: canComplete ? 'pointer' : 'not-allowed' }}
           >
             Complete Chat
           </button>
@@ -123,6 +143,10 @@ function App() {
           onTextSelect={handleTextSelect}
           highlightsByMessage={highlightsByMessage}
           loadingConversation={false}
+          isInputLocked={isInputLocked}
+          reactionCount={currentTurnReactionCount}
+          requiredReactions={REQUIRED_REACTIONS}
+          isAtLimit={isAtLimit}
         />
 
         {/* Right panel - Mental Models */}
