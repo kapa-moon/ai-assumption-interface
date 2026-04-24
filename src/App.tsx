@@ -144,8 +144,6 @@ function App() {
           highlightsByMessage={highlightsByMessage}
           loadingConversation={false}
           isInputLocked={isInputLocked}
-          reactionCount={currentTurnReactionCount}
-          requiredReactions={REQUIRED_REACTIONS}
           isAtLimit={isAtLimit}
         />
 

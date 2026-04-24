@@ -14,8 +14,6 @@ interface ChatInterfaceProps {
   highlightsByMessage: Record<number, number>;
   loadingConversation: boolean;
   isInputLocked?: boolean;
-  reactionCount?: number;
-  requiredReactions?: number;
   isAtLimit?: boolean;
 }
 
@@ -30,8 +28,6 @@ export function ChatInterface({
   highlightsByMessage,
   loadingConversation,
   isInputLocked = false,
-  reactionCount = 0,
-  requiredReactions = 3,
   isAtLimit = false,
 }: ChatInterfaceProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
