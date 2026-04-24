@@ -183,23 +183,10 @@ export function ChatInterface({
             </svg>
             <p
               className="text-center text-zinc-600 leading-snug px-4"
-              style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, fontSize: 13 }}
+              style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, fontSize: 15 }}
             >
               Please review the AI assumption scores on the right<br />before sending your next message
             </p>
-            {/* Progress pips */}
-            <div className="flex items-center gap-1.5 mt-0.5">
-              {Array.from({ length: requiredReactions }).map((_, i) => (
-                <span
-                  key={i}
-                  className="w-2 h-2 rounded-full transition-colors duration-200"
-                  style={{ backgroundColor: i < reactionCount ? '#16a34a' : '#d4d4d8' }}
-                />
-              ))}
-              <span className="ml-1 text-[11px] text-zinc-400" style={{ fontFamily: "'Dosis', sans-serif" }}>
-                {reactionCount}/{requiredReactions} reactions given
-              </span>
-            </div>
           </div>
         )}
 
