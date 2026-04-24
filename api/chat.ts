@@ -37,6 +37,12 @@ function getAzureCredentials() {
 function buildInductPrompt(turns: TurnWithPrior[], newUserText: string, alias: string): string {
   const hasPriors = turns.some((t) => t.inductPrior);
 
+  console.log('[API/buildInductPrompt] Turns with user priors:', turns.map((t, i) => ({
+    turn: i,
+    hasInductUserPrior: !!t.inductUserPrior,
+    inductUserPrior: t.inductUserPrior,
+  })));
+
   const history = turns.length
     ? turns
         .map((t) => {
@@ -48,6 +54,7 @@ function buildInductPrompt(turns: TurnWithPrior[], newUserText: string, alias: s
           }
           if (t.inductUserPrior) {
             const userJson = JSON.stringify(stripExplanations(t.inductUserPrior), null, 2);
+            console.log(`[API/buildInductPrompt] Adding user self-assessment for turn: ${t.userMessage.substring(0, 30)}...`, userJson);
             if (userJson)
               block += `\n\n${alias}'s self-assessment at end of this turn (treat as additional signal, form your own independent estimate):\n\`\`\`json\n${userJson}\n\`\`\``;
           }
@@ -55,6 +62,8 @@ function buildInductPrompt(turns: TurnWithPrior[], newUserText: string, alias: s
         })
         .join('\n\n')
     : '(no previous conversation)';
+
+  console.log('[API/buildInductPrompt] Final prompt excerpt (first 500 chars):', history.substring(0, 500) + '...');
 
   const updateLine = hasPriors ? '\n\nUpdate your mental model for the current turn.\n\n' : '\n\n';
 
@@ -103,6 +112,12 @@ Then output ONLY a valid JSON object in the following structure:
 function buildTypesSupportPrompt(turns: TurnWithPrior[], newUserText: string, alias: string): string {
   const hasPriors = turns.some((t) => t.typesSupportPrior);
 
+  console.log('[API/buildTypesSupportPrompt] Turns with user priors:', turns.map((t, i) => ({
+    turn: i,
+    hasTypesSupportUserPrior: !!t.typesSupportUserPrior,
+    typesSupportUserPrior: t.typesSupportUserPrior,
+  })));
+
   const history = turns.length
     ? turns
         .map((t) => {
@@ -114,6 +129,7 @@ function buildTypesSupportPrompt(turns: TurnWithPrior[], newUserText: string, al
           }
           if (t.typesSupportUserPrior) {
             const userJson = JSON.stringify(stripExplanations(t.typesSupportUserPrior), null, 2);
+            console.log(`[API/buildTypesSupportPrompt] Adding user self-assessment:`, userJson);
             if (userJson)
               block += `\n\n${alias}'s self-assessment at end of this turn (treat as additional signal, form your own independent estimate):\n\`\`\`json\n${userJson}\n\`\`\``;
           }

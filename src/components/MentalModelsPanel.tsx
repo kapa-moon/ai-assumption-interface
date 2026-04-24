@@ -91,6 +91,8 @@ function ScoreSection({
   onReactionChange,
 }: ScoreSectionProps) {
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  // Track which dimension was most recently interacted with
+  const [lastTouchedKey, setLastTouchedKey] = useState<string | null>(null);
 
   const handleConfirm = (key: string) => {
     onConfirmDimension(key, reasons[key]?.trim() ?? '');
@@ -99,6 +101,7 @@ function ScoreSection({
       delete n[key];
       return n;
     });
+    setLastTouchedKey((prev) => (prev === key ? null : prev));
   };
 
   const toggleReaction = (key: string, dir: 'up' | 'down') => {
@@ -130,7 +133,9 @@ function ScoreSection({
           const item = beliefs?.[s.key];
           const aiScore = typeof item?.score === 'number' ? item.score : null;
           const userScore = userBeliefs?.[s.key] ?? null;
-          const isLive = (liveBeliefs?.[s.key] ?? null) !== null;
+          const hasLiveChange = (liveBeliefs?.[s.key] ?? null) !== null;
+          // Only show confirm UI for the most recently touched dimension
+          const isLive = hasLiveChange && (lastTouchedKey === null || lastTouchedKey === s.key);
 
           return (
             <div key={s.key}>
@@ -146,7 +151,10 @@ function ScoreSection({
                       aiScore={aiScore}
                       userScore={userScore}
                       color={s.color}
-                      onChange={(score) => onUserScoreChange(s.key, score)}
+                      onChange={(score) => {
+                        setLastTouchedKey(s.key);
+                        onUserScoreChange(s.key, score);
+                      }}
                     />
                   </div>
                   
@@ -186,33 +194,6 @@ function ScoreSection({
                   {/* Confirm with reason */}
                   {isLive && (
                     <div className="mt-2 flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleConfirm(s.key)}
-                        className="flex-shrink-0 py-1 px-3 text-[11px] bg-white rounded"
-                        style={{
-                          border: `1.5px solid ${s.color}`,
-                          color: '#000',
-                          fontFamily: "'Dosis', sans-serif",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Confirm score
-                      </button>
-                      <button
-                        onClick={() => {
-                          setReasons((prev) => {
-                            const n = { ...prev };
-                            delete n[s.key];
-                            return n;
-                          });
-                          onCancel(s.key);
-                        }}
-                        title="Cancel change"
-                        className="flex-shrink-0 w-7 h-7 flex items-center justify-center bg-white rounded text-red-500 font-bold text-[13px]"
-                        style={{ border: '1.5px solid #fca5a5' }}
-                      >
-                        ✕
-                      </button>
                       <div className="relative flex-1">
                         <input
                           type="text"
@@ -234,6 +215,34 @@ function ScoreSection({
                           ↵
                         </span>
                       </div>
+                      <button
+                        onClick={() => {
+                          setReasons((prev) => {
+                            const n = { ...prev };
+                            delete n[s.key];
+                            return n;
+                          });
+                          onCancel(s.key);
+                          setLastTouchedKey((prev) => (prev === s.key ? null : prev));
+                        }}
+                        title="Cancel change"
+                        className="flex-shrink-0 w-7 h-7 flex items-center justify-center bg-white rounded text-red-500 font-bold text-[13px]"
+                        style={{ border: '1.5px solid #fca5a5' }}
+                      >
+                        ✕
+                      </button>
+                      <button
+                        onClick={() => handleConfirm(s.key)}
+                        className="flex-shrink-0 py-1 px-3 text-[11px] bg-white rounded"
+                        style={{
+                          border: `1.5px solid ${s.color}`,
+                          color: '#000',
+                          fontFamily: "'Dosis', sans-serif",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Confirm score
+                      </button>
                     </div>
                   )}
                 </>
