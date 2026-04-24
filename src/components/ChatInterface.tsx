@@ -181,7 +181,9 @@ export function ChatInterface({
               className="text-center text-zinc-600 leading-snug px-4"
               style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, fontSize: 15 }}
             >
-              Give at least <strong>2 thumbs</strong> in section 1 and<br /><strong>1 thumb</strong> in section 2 before continuing
+              Please review all AI assumption scores in both{' '}
+              <strong>section 1</strong> and <strong>section 2</strong>{' '}
+              before continuing
             </p>
           </div>
         )}
