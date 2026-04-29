@@ -371,7 +371,7 @@ function buildMentalModelPreamble(model: LastTurnModel): string {
 
 // Build system prompt for the assistant, optionally shaped by last turn's mental model
 function buildSystemPrompt(alias: string, lastModel?: LastTurnModel): string {
-  const base = `You are a helpful, honest AI assistant having a conversation with ${alias}. Be clear, thoughtful, and balanced. Adapt your tone to what the conversation calls for.`;
+  const base = `You are an AI assistant having a conversation with a human (${alias}).`;
 
   if (!lastModel) return base;
 

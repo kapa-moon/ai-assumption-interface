@@ -18,6 +18,7 @@ function App() {
 
   // Highlight popup state
   const [activeHighlight, setActiveHighlight] = useState<ActiveHighlight | null>(null);
+  const [showRules, setShowRules] = useState(false);
 
   // Initialize chat hook
   const {
@@ -41,6 +42,8 @@ function App() {
     handleTypesSupportCancel,
     handleInductReactionChange,
     handleTypesSupportReactionChange,
+    handleInductSaveComment,
+    handleTypesSupportSaveComment,
     handleSaveHighlight,
     signalChatComplete,
     isAtLimit,
@@ -87,8 +90,8 @@ function App() {
     handleSaveHighlight(text, msgIdx, reaction, comment);
   }, [handleSaveHighlight]);
 
-  // Lock input until the user has given ≥2 thumbs in section 1 (INDUCT)
-  // and ≥1 thumb in section 2 (Types of Support) for the current turn
+  // Lock input until every score has a reaction:
+  // all 4 INDUCT dimensions + all 2 TYPES_SUPPORT dimensions shown in the panel
   const lastMM = mentalModelsByTurn[mentalModelsByTurn.length - 1];
   const inductReactionCount = Object.keys(lastMM?.inductUserReactions ?? {}).length;
   const typesSupportReactionCount = Object.keys(lastMM?.typesSupportUserReactions ?? {}).length;
@@ -96,9 +99,9 @@ function App() {
     !isLoading &&
     !isLoadingMentalModel &&
     mentalModelsByTurn.length > 0 &&
-    (inductReactionCount < 2 || typesSupportReactionCount < 1);
+    (inductReactionCount < 4 || typesSupportReactionCount < 2);
 
-  const MIN_TURNS = 5;
+  const MIN_TURNS = 8;
   const canComplete = mentalModelsByTurn.length >= MIN_TURNS;
 
   // Handle chat completion (when user is done)
@@ -113,20 +116,61 @@ function App() {
   return (
     <div className="flex flex-col h-screen bg-zinc-50">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200 z-10">
+      <header className="relative flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200 z-10">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-zinc-900">AI Assumptions Study</span>
+          <button
+            onClick={() => setShowRules((prev) => !prev)}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 transition-colors"
+            type="button"
+          >
+            Instruction
+          </button>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-zinc-500">Session: {qualtricsParams.sessionId.slice(0, 8)}</span>
           <button
             onClick={handleComplete}
             className="text-sm font-bold px-4 py-2 text-white rounded transition-colors shadow-sm"
-            style={{ backgroundColor: canComplete ? '#ff4d4d' : '#d4d4d8', cursor: canComplete ? 'pointer' : 'not-allowed' }}
+            title={canComplete ? 'Complete the chat' : `Please complete at least ${MIN_TURNS} turns before finishing. You have completed ${mentalModelsByTurn.length} so far.`}
+            style={{ backgroundColor: canComplete ? '#ff4d4d' : '#d4d4d8', cursor: canComplete ? 'pointer' : 'help' }}
           >
             Complete Chat
           </button>
         </div>
+        {showRules && (
+          <div className="absolute left-4 top-full mt-2 w-[440px] rounded-xl border border-zinc-200 bg-white p-4 shadow-xl z-50">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <h2 className="text-sm font-bold text-zinc-900">How to use this tool</h2>
+              <button
+                onClick={() => setShowRules(false)}
+                className="text-xs font-bold px-2.5 py-1 rounded bg-zinc-900 text-white hover:bg-zinc-700 transition-colors"
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+            <ul className="space-y-2 text-sm text-zinc-700 leading-relaxed">
+              <li>You will discuss the situation you wrote about earlier with the AI chatbot.</li>
+              <li>Please complete at least <strong>8 turns</strong>.</li>
+              <li>After each AI response, review each AI assumption score by giving it a thumbs up or thumbs down.</li>
+              <li>
+                If you are not happy with a score, give it a thumbs down. Then tune the slider to match your own view as closely as possible.
+                {' '}Make sure to <strong>confirm</strong> your new score and briefly explain your rationale.
+              </li>
+              <li>
+                You must review all scores in section{' '}
+                <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5">1</span>
+                {' '}and section{' '}
+                <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5">2</span>
+                {' '}(scroll down on the right; section 2 sits below section 1) —{' '}
+                <strong className="text-red-600">6</strong> scores in total — before proceeding to your next message.
+              </li>
+              <li>The chart shows the AI's assumed scores and your adjustments across conversational turns.</li>
+              <li>We know this takes attention and effort. Your careful review is important, and we appreciate it :)</li>
+            </ul>
+          </div>
+        )}
       </header>
 
       {/* Main layout */}
@@ -144,32 +188,35 @@ function App() {
           loadingConversation={false}
           isInputLocked={isInputLocked}
           isAtLimit={isAtLimit}
+          onScrollToSection={(section) => {
+            const target = section === 1 ? section1Ref.current : section2Ref.current;
+            target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          onOpenInstructions={() => setShowRules(true)}
         />
 
         {/* Right panel - Mental Models */}
         <div className="flex flex-col flex-shrink-0 overflow-hidden border-l border-zinc-200" style={{ width: '45%' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-zinc-200 flex-shrink-0">
-            <span style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, color: '#000', fontSize: '16px', lineHeight: '1.35' }}>
+            <span className="font-semibold text-black" style={{ fontFamily: 'Dosis, sans-serif', fontWeight: 600, fontSize: '18px', lineHeight: '1.35' }}>
               What does the AI assume about you when answering your questions?
             </span>
             <div className="flex items-center gap-2 ml-3 flex-shrink-0">
               {isLoadingMentalModel && (
                 <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
               )}
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-800 border border-red-200 rounded-lg bg-red-50 whitespace-nowrap shadow-sm" style={{ fontFamily: "'Dosis', sans-serif" }}>
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#dc2626' }} />
-                Please review both sections ⚠️
-              </div>
               <button
+                type="button"
                 onClick={() => section1Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, backgroundColor: '#18181b', color: '#fff', fontFamily: "'Dosis', sans-serif", fontWeight: 700, fontSize: 13, cursor: 'pointer', border: 'none' }}
+                className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white font-bold text-[13px] cursor-pointer border-none"
               >
                 1
               </button>
               <button
+                type="button"
                 onClick={() => section2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, backgroundColor: '#18181b', color: '#fff', fontFamily: "'Dosis', sans-serif", fontWeight: 700, fontSize: 13, cursor: 'pointer', border: 'none' }}
+                className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white font-bold text-[13px] cursor-pointer border-none"
               >
                 2
               </button>
@@ -178,9 +225,11 @@ function App() {
 
           {/* Mental models content */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            <p className="text-sm font-light text-black leading-relaxed mb-3">
-              Updated after each AI response, based on your conversation.
-            </p>
+            {(isLoadingMentalModel || mentalModelsByTurn.length === 0) && (
+              <p className="text-base font-light text-black leading-relaxed mb-3">
+                Updated after each AI response, based on your conversation.
+              </p>
+            )}
             <MentalModelsPanel
               mentalModel={mentalModel}
               mentalModelsByTurn={mentalModelsByTurn}
@@ -195,6 +244,8 @@ function App() {
               onTypesSupportCancel={handleTypesSupportCancel}
               onInductReactionChange={handleInductReactionChange}
               onTypesSupportReactionChange={handleTypesSupportReactionChange}
+              onInductSaveComment={handleInductSaveComment}
+              onTypesSupportSaveComment={handleTypesSupportSaveComment}
               section1Ref={section1Ref}
               section2Ref={section2Ref}
             />

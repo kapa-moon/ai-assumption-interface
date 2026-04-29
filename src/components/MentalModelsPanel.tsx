@@ -1,5 +1,5 @@
 // Mental Models Panel - main right panel component (ported from syconistic-dial)
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { DraggableScoreBar } from './DraggableScoreBar';
 import { ScoresChart } from './ScoresChart';
 import type { CombinedMentalModel } from '../types';
@@ -30,6 +30,8 @@ interface MentalModelsPanelProps {
   onTypesSupportCancel: (key: string) => void;
   onInductReactionChange: (key: string, dir: 'up' | 'down' | null) => void;
   onTypesSupportReactionChange: (key: string, dir: 'up' | 'down' | null) => void;
+  onInductSaveComment: (key: string, comment: string) => void;
+  onTypesSupportSaveComment: (key: string, comment: string) => void;
   section1Ref?: React.RefObject<HTMLDivElement | null>;
   section2Ref?: React.RefObject<HTMLDivElement | null>;
 }
@@ -72,6 +74,7 @@ interface ScoreSectionProps {
   onConfirmDimension: (key: string, reason: string) => void;
   onCancel: (key: string) => void;
   onReactionChange: (key: string, dir: 'up' | 'down' | null) => void;
+  onSaveComment: (key: string, comment: string) => void;
 }
 
 function ScoreSection({
@@ -89,43 +92,88 @@ function ScoreSection({
   onConfirmDimension,
   onCancel,
   onReactionChange,
+  onSaveComment,
 }: ScoreSectionProps) {
-  const [reasons, setReasons] = useState<Record<string, string>>({});
-  // Track which dimension was most recently interacted with
-  const [lastTouchedKey, setLastTouchedKey] = useState<string | null>(null);
+  // Local text for reason (👎) and comment (👍) inputs, keyed by dimension
+  const [localText, setLocalText] = useState<Record<string, string>>({});
+  // Keys where the comment/reason was saved — hides the input until re-interaction
+  const [dismissedKeys, setDismissedKeys] = useState<Record<string, boolean>>({});
+  // Keys where score has been confirmed — unlocks comment box, locks slider
+  const [confirmedScoreKeys, setConfirmedScoreKeys] = useState<Record<string, boolean>>({});
+  // Keys that were recently saved — shows a brief "Saved" flash
+  const [savedKeys, setSavedKeys] = useState<Record<string, boolean>>({});
 
-  const handleConfirm = (key: string) => {
-    onConfirmDimension(key, reasons[key]?.trim() ?? '');
-    setReasons((prev) => {
-      const n = { ...prev };
-      delete n[key];
-      return n;
-    });
-    setLastTouchedKey(null);
-  };
+  // Dismiss the box immediately, flash "Saved" briefly outside it
+  const flashSavedAndDismiss = useCallback((key: string) => {
+    setDismissedKeys((prev) => ({ ...prev, [key]: true })); // box gone immediately
+    setSavedKeys((prev) => ({ ...prev, [key]: true }));     // "Saved" appears
+    setTimeout(() => {
+      setSavedKeys((prev) => { const n = { ...prev }; delete n[key]; return n; }); // "Saved" fades
+    }, 1200);
+  }, []);
+
+  const undismiss = useCallback((key: string) => {
+    setDismissedKeys((prev) => { const n = { ...prev }; delete n[key]; return n; });
+  }, []);
+
+  // Confirm a score change — locks slider and opens comment box
+  const handleConfirmScore = useCallback((key: string) => {
+    onConfirmDimension(key, '');
+    setConfirmedScoreKeys((prev) => ({ ...prev, [key]: true }));
+  }, [onConfirmDimension]);
+
+  // Save a comment (for 👍, 👎 no-drag, or post-confirm 👎)
+  const handleSaveComment = useCallback((key: string) => {
+    const text = localText[key]?.trim() ?? '';
+    if (!text) return;
+    onSaveComment(key, text);
+    setLocalText((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    flashSavedAndDismiss(key);
+  }, [localText, onSaveComment, flashSavedAndDismiss]);
 
   const toggleReaction = (key: string, dir: 'up' | 'down') => {
-    onReactionChange(key, reactions?.[key] === dir ? null : dir);
+    const current = reactions?.[key];
+    const newDir = current === dir ? null : dir;
+    // Leaving 👎 — cancel any pending score drag
+    if (current === 'down' && newDir !== 'down') {
+      onCancel(key);
+      setLocalText((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    }
+    // Re-interaction: show the textbox again, reset confirmed state
+    undismiss(key);
+    setConfirmedScoreKeys((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    onReactionChange(key, newDir);
   };
 
   return (
     <div>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700&display=swap');`}</style>
-      
-      {/* Section title */}
-      <div className="flex items-start gap-2 mb-3">
-        {sectionNumber && <SectionBadge n={sectionNumber} />}
-        <p style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, color: '#000', fontSize: '15px', lineHeight: '1.35' }}>
-          {title}
-        </p>
-      </div>
 
-      {/* Chart */}
-      <ScoresChart
-        mentalModelsByTurn={turnsData as CombinedMentalModel[]}
-        modelType={series === INDUCT_SERIES ? 'induct' : 'types_support'}
-        userScoresByTurn={userScoresByTurn}
-      />
+      {/* Sticky: title + chart stick together while the dimension bars scroll */}
+      <div
+        style={{
+          position: 'sticky',
+          top: -16,
+          zIndex: 30,
+          backgroundColor: 'white',
+          margin: '-16px -24px 0',
+          padding: '16px 24px 12px',
+          borderBottom: '1px solid #f4f4f5',
+          boxShadow: '0 8px 12px -12px rgba(0, 0, 0, 0.18)',
+        }}
+      >
+        <div className="flex items-start gap-2 mb-3">
+          {sectionNumber && <SectionBadge n={sectionNumber} />}
+          <p style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, color: '#000', fontSize: '17px', lineHeight: '1.35' }}>
+            {title}
+          </p>
+        </div>
+        <ScoresChart
+          mentalModelsByTurn={turnsData as CombinedMentalModel[]}
+          modelType={series === INDUCT_SERIES ? 'induct' : 'types_support'}
+          userScoresByTurn={userScoresByTurn}
+        />
+      </div>
 
       {/* Score bars */}
       <div className="space-y-5 mt-4">
@@ -134,133 +182,128 @@ function ScoreSection({
           const aiScore = typeof item?.score === 'number' ? item.score : null;
           const userScore = userBeliefs?.[s.key] ?? null;
           const hasLiveChange = (liveBeliefs?.[s.key] ?? null) !== null;
-          // Only show confirm UI for the single most recently touched dimension
-          const isLive = hasLiveChange && lastTouchedKey === s.key;
-          // Pending = live change exists but not currently expanded (another key is active)
-          const isPending = hasLiveChange && !isLive;
+          const reaction = reactions?.[s.key] ?? null;
+          // Slider + reason UI: only shown when 👎 is active
+          const isAdjusting = reaction === 'down';
 
           return (
             <div key={s.key}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="flex items-center gap-1.5 font-medium text-zinc-700" style={{ fontSize: 13 }}>
-                  {s.label}
-                  {isPending && (
-                    <span
-                      title="Unsaved change — drag again to confirm"
-                      style={{
-                        display: 'inline-block',
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        backgroundColor: s.color,
-                        flexShrink: 0,
-                        opacity: 0.75,
-                      }}
-                    />
-                  )}
-                </span>
-                {isLoading && <span className="text-[9px] text-zinc-300 animate-pulse">updating</span>}
+                <span className="font-medium text-zinc-700" style={{ fontSize: 15 }}>{s.label}</span>
+                {isLoading && <span className="text-[10px] text-zinc-300 animate-pulse">updating</span>}
               </div>
               
               {aiScore != null ? (
                 <>
+                  {/* Score bar — disabled unless 👎 is active */}
                   <div className="pr-9">
                     <DraggableScoreBar
                       aiScore={aiScore}
                       userScore={userScore}
                       color={s.color}
                       onChange={(score) => {
-                        setLastTouchedKey(s.key);
+                        undismiss(s.key);
+                        setConfirmedScoreKeys((prev) => { const n = { ...prev }; delete n[s.key]; return n; });
                         onUserScoreChange(s.key, score);
                       }}
+                      inviteDrag={isAdjusting && !confirmedScoreKeys[s.key]}
+                      disabled={!isAdjusting || !!confirmedScoreKeys[s.key]}
                     />
                   </div>
+
+                  {/* Hint line before drag / buttons after drag — same position */}
+                  {isAdjusting && !confirmedScoreKeys[s.key] && (
+                    hasLiveChange ? (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleConfirmScore(s.key); }}
+                          className="py-0.5 px-2.5 text-[11px] bg-white rounded"
+                          style={{ border: `1.5px solid ${s.color}`, color: '#000', fontFamily: "'Dosis', sans-serif", fontWeight: 600 }}
+                        >
+                          Confirm new score
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setLocalText((prev) => { const n = { ...prev }; delete n[s.key]; return n; }); onCancel(s.key); }}
+                          className="py-0.5 px-2.5 text-[11px] bg-white rounded text-red-500"
+                          style={{ border: '1.5px solid #fca5a5', fontFamily: "'Dosis', sans-serif", fontWeight: 600 }}
+                        >
+                          Cancel change
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="mt-1.5 text-[14px] text-red-400 select-none" style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 500 }}>
+                        ↔ drag the bar above to adjust the score
+                      </p>
+                    )
+                  )}
                   
-                  {/* AI explanation with thumbs */}
+                  {/* AI explanation + thumbs */}
                   {item?.explanation && (
                     <div className="flex items-start gap-1.5 mt-2">
-                      <p className="leading-relaxed flex-1 text-zinc-500" style={{ fontSize: 12 }}>{item.explanation}</p>
+                      <p className="leading-relaxed flex-1 text-zinc-500" style={{ fontSize: 14 }}>{item.explanation}</p>
                       <div className="flex gap-1 flex-shrink-0 mt-0.5">
                         <button
                           onClick={() => toggleReaction(s.key, 'up')}
-                          className="w-5 h-5 flex items-center justify-center text-[11px] border transition-colors"
+                          className="w-6 h-6 flex items-center justify-center text-[13px] border transition-colors"
                           style={{
                             borderRadius: 3,
-                            borderColor: reactions?.[s.key] === 'up' ? '#16a34a' : '#e4e4e7',
-                            backgroundColor: reactions?.[s.key] === 'up' ? '#f0fdf4' : '#fff',
+                            borderColor: reaction === 'up' ? '#16a34a' : '#e4e4e7',
+                            backgroundColor: reaction === 'up' ? '#f0fdf4' : '#fff',
                           }}
-                          title="This is exactly what I think!"
+                          title="I agree with this assumption"
                         >
                           👍
                         </button>
                         <button
                           onClick={() => toggleReaction(s.key, 'down')}
-                          className="w-5 h-5 flex items-center justify-center text-[11px] border transition-colors"
+                          className="w-6 h-6 flex items-center justify-center text-[13px] border transition-colors"
                           style={{
                             borderRadius: 3,
-                            borderColor: reactions?.[s.key] === 'down' ? '#dc2626' : '#e4e4e7',
-                            backgroundColor: reactions?.[s.key] === 'down' ? '#fef2f2' : '#fff',
+                            borderColor: reaction === 'down' ? '#dc2626' : '#e4e4e7',
+                            backgroundColor: reaction === 'down' ? '#fef2f2' : '#fff',
                           }}
-                          title="This is not a good assumption about me."
+                          title="This doesn't match my expectation"
                         >
                           👎
                         </button>
                       </div>
                     </div>
                   )}
-                  
-                  {/* Confirm with reason */}
-                  {isLive && (
+
+                  {/* Saved flash — shown briefly after any save, outside the box */}
+                  {savedKeys[s.key] && (
+                    <p className="mt-2 text-[13px] font-semibold text-green-600" style={{ fontFamily: "'Dosis', sans-serif" }}>
+                      Saved
+                    </p>
+                  )}
+
+                  {/* 👎 comment box — only appears after score is confirmed */}
+                  {isAdjusting && confirmedScoreKeys[s.key] && !dismissedKeys[s.key] && (
                     <div className="mt-2 flex items-center gap-1.5">
                       <div className="relative flex-1">
                         <input
                           type="text"
-                          className="w-full text-sm rounded border border-zinc-200 py-1.5 pl-2.5 pr-6 bg-white focus:outline-none focus:border-zinc-400"
+                          className="w-full text-base rounded border border-zinc-200 py-1.5 pl-2.5 pr-6 bg-white focus:outline-none focus:border-zinc-400"
                           style={{ fontFamily: "'Dosis', sans-serif" }}
-                          placeholder="Why did you make this change?"
-                          value={reasons[s.key] ?? ''}
-                          onChange={(e) =>
-                            setReasons((prev) => ({ ...prev, [s.key]: e.target.value }))
-                          }
+                          placeholder="Why did you change the score?"
+                          value={localText[s.key] ?? ''}
+                          onChange={(e) => setLocalText((prev) => ({ ...prev, [s.key]: e.target.value }))}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleConfirm(s.key);
+                              handleSaveComment(s.key);
                             }
                           }}
                         />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-zinc-300 pointer-events-none select-none">
-                          ↵
-                        </span>
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-zinc-300 pointer-events-none select-none">↵</span>
                       </div>
                       <button
-                        onClick={() => {
-                          setReasons((prev) => {
-                            const n = { ...prev };
-                            delete n[s.key];
-                            return n;
-                          });
-                          onCancel(s.key);
-                          setLastTouchedKey((prev) => (prev === s.key ? null : prev));
-                        }}
-                        title="Cancel change"
-                        className="flex-shrink-0 w-7 h-7 flex items-center justify-center bg-white rounded text-red-500 font-bold text-[13px]"
-                        style={{ border: '1.5px solid #fca5a5' }}
-                      >
-                        ✕
-                      </button>
-                      <button
-                        onClick={() => handleConfirm(s.key)}
+                        onClick={(e) => { e.stopPropagation(); handleSaveComment(s.key); }}
                         className="flex-shrink-0 py-1 px-3 text-[11px] bg-white rounded"
-                        style={{
-                          border: `1.5px solid ${s.color}`,
-                          color: '#000',
-                          fontFamily: "'Dosis', sans-serif",
-                          fontWeight: 600,
-                        }}
+                        style={{ border: `1.5px solid ${s.color}`, color: '#000', fontFamily: "'Dosis', sans-serif", fontWeight: 600 }}
                       >
-                        Confirm score
+                        Save
                       </button>
                     </div>
                   )}
@@ -290,6 +333,8 @@ export function MentalModelsPanel({
   onTypesSupportCancel,
   onInductReactionChange,
   onTypesSupportReactionChange,
+  onInductSaveComment,
+  onTypesSupportSaveComment,
   section1Ref,
   section2Ref,
 }: MentalModelsPanelProps) {
@@ -341,6 +386,7 @@ export function MentalModelsPanel({
           onConfirmDimension={onInductConfirmDimension}
           onCancel={onInductCancel}
           onReactionChange={onInductReactionChange}
+          onSaveComment={onInductSaveComment}
         />
       </div>
       
@@ -362,6 +408,7 @@ export function MentalModelsPanel({
           onConfirmDimension={onTypesSupportConfirmDimension}
           onCancel={onTypesSupportCancel}
           onReactionChange={onTypesSupportReactionChange}
+          onSaveComment={onTypesSupportSaveComment}
         />
       </div>
     </div>

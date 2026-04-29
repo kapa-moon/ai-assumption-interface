@@ -26,8 +26,8 @@ export function ScoresChart({ mentalModelsByTurn, modelType, userScoresByTurn }:
 
   const n = mentalModelsByTurn.length;
   const width = 460;
-  const height = 200;
-  const pad = { left: 32, right: 12, top: 10, bottom: 28 };
+  const height = 140;
+  const pad = { left: 32, right: 12, top: 8, bottom: 24 };
   const iw = width - pad.left - pad.right;
   const ih = height - pad.top - pad.bottom;
   const xScale = (i: number) => pad.left + (n <= 1 ? iw / 2 : (i / Math.max(1, n - 1)) * iw);
@@ -53,6 +53,7 @@ export function ScoresChart({ mentalModelsByTurn, modelType, userScoresByTurn }:
     <div className="mt-3">
       <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">Scores across turns</p>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ display: 'block' }}>
+        <rect x={0} y={0} width={width} height={height} fill="white" />
         {/* Y grid */}
         {[0, 0.25, 0.5, 0.75, 1].map((v) => (
           <g key={v}>

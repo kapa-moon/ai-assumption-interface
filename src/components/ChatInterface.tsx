@@ -15,6 +15,8 @@ interface ChatInterfaceProps {
   loadingConversation: boolean;
   isInputLocked?: boolean;
   isAtLimit?: boolean;
+  onScrollToSection?: (section: 1 | 2) => void;
+  onOpenInstructions?: () => void;
 }
 
 export function ChatInterface({
@@ -29,6 +31,8 @@ export function ChatInterface({
   loadingConversation,
   isInputLocked = false,
   isAtLimit = false,
+  onScrollToSection,
+  onOpenInstructions,
 }: ChatInterfaceProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -165,33 +169,62 @@ export function ChatInterface({
         {/* Lock overlay */}
         {!isAtLimit && isInputLocked && (
           <div
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-b-none"
+            className="absolute inset-0 z-10 flex flex-col justify-center px-6 py-6 rounded-b-none"
             style={{
               background: 'rgba(255, 255, 255, 0.88)',
               backdropFilter: 'blur(4px)',
               WebkitBackdropFilter: 'blur(4px)',
             }}
           >
-            {/* Lock icon */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#71717a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <p
-              className="text-center text-zinc-600 leading-snug px-4"
-              style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 600, fontSize: 15 }}
-            >
-              Please review all AI assumption scores in both{' '}
-              <strong>section 1</strong> and <strong>section 2</strong>{' '}
-              before continuing
-            </p>
+            <div className="flex gap-3 w-full items-start">
+              <svg
+                className="shrink-0 mt-0.5"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#71717a"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <p className="flex-1 min-w-0 text-left text-black text-sm font-normal leading-[1.7]">
+                Rate each score with 👍 or 👎 in both section{' '}
+                <button
+                  type="button"
+                  onClick={() => onScrollToSection?.(1)}
+                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5"
+                >
+                  1
+                </button>
+                {' '}and section{' '}
+                <button
+                  type="button"
+                  onClick={() => onScrollToSection?.(2)}
+                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5"
+                >
+                  2
+                </button>
+                {' '}before continuing. If you reacted with 👎, please give your new score by moving the slider.{' '}
+                <button
+                  type="button"
+                  onClick={onOpenInstructions}
+                  className="underline font-normal text-black hover:text-zinc-600"
+                >
+                  See further instructions here
+                </button>
+              </p>
+            </div>
           </div>
         )}
 
         <div className="relative">
           <textarea
             ref={textareaRef}
-            className="w-full resize-none border border-zinc-200 rounded-xl px-4 pt-3 pb-10 text-sm outline-none focus:ring-2 focus:ring-zinc-900 leading-relaxed"
+            className="w-full resize-none border border-zinc-200 rounded-xl px-4 pt-3 pb-10 text-base outline-none focus:ring-2 focus:ring-zinc-900 leading-relaxed"
             placeholder="Type a message..."
             rows={2}
             value={input}

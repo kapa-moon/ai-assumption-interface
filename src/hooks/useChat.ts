@@ -341,6 +341,29 @@ export function useChat({ qualtricsParams }: UseChatProps) {
     });
   }, []);
 
+  // Save a comment for a dimension without changing its score (e.g. thumbs-up comment)
+  const handleInductSaveComment = useCallback((key: string, comment: string) => {
+    if (!comment.trim()) return;
+    setMentalModelsByTurn((prev) => {
+      const lastIdx = prev.length - 1;
+      if (lastIdx < 0) return prev;
+      const currentMM = prev[lastIdx];
+      const newReasons = { ...(currentMM.inductUserReasons ?? {}), [key]: comment.trim() };
+      return prev.map((mm, i) => i === lastIdx ? { ...mm, inductUserReasons: newReasons } : mm);
+    });
+  }, []);
+
+  const handleTypesSupportSaveComment = useCallback((key: string, comment: string) => {
+    if (!comment.trim()) return;
+    setMentalModelsByTurn((prev) => {
+      const lastIdx = prev.length - 1;
+      if (lastIdx < 0) return prev;
+      const currentMM = prev[lastIdx];
+      const newReasons = { ...(currentMM.typesSupportUserReasons ?? {}), [key]: comment.trim() };
+      return prev.map((mm, i) => i === lastIdx ? { ...mm, typesSupportUserReasons: newReasons } : mm);
+    });
+  }, []);
+
   // Handle highlight save
   const handleSaveHighlight = useCallback((text: string, msgIdx: number, reaction: 'up' | 'down' | null, comment: string) => {
     const highlight: Highlight = {
@@ -387,6 +410,8 @@ export function useChat({ qualtricsParams }: UseChatProps) {
     handleTypesSupportCancel,
     handleInductReactionChange,
     handleTypesSupportReactionChange,
+    handleInductSaveComment,
+    handleTypesSupportSaveComment,
     handleSaveHighlight,
     signalChatComplete,
   };
