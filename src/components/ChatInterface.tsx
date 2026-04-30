@@ -67,8 +67,12 @@ export function ChatInterface({
         onMouseUp={onTextSelect}
       >
         {loadingConversation ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-zinc-400">Loading...</p>
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <div
+              className="animate-spin"
+              style={{ width: 28, height: 28, border: '3px solid #e4e4e7', borderTopColor: '#18181b', borderRadius: '50%' }}
+            />
+            <p className="text-sm text-zinc-400">Loading conversation…</p>
           </div>
         ) : messages.length === 0 && !streamingText && !isLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -127,12 +131,12 @@ export function ChatInterface({
         {/* Loading indicator */}
         {isLoading && !streamingText && messages.length > 0 && (
           <div className="flex justify-start">
-            <div className="px-4 py-2.5">
-              <div className="flex gap-1">
-                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
+            <div className="px-4 py-2.5 flex items-center gap-2">
+              <div
+                className="animate-spin flex-shrink-0"
+                style={{ width: 16, height: 16, border: '2px solid #e4e4e7', borderTopColor: '#71717a', borderRadius: '50%' }}
+              />
+              <span className="text-xs text-zinc-400" style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 500 }}>Thinking…</span>
             </div>
           </div>
         )}

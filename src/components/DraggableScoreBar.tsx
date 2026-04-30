@@ -1,5 +1,5 @@
 // Draggable score bar component (ported from syconistic-dial)
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 interface DraggableScoreBarProps {
   aiScore: number | null;
@@ -15,6 +15,7 @@ interface DraggableScoreBarProps {
 export function DraggableScoreBar({ aiScore, userScore, color, onChange, inviteDrag = false, disabled = false }: DraggableScoreBarProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  const [showHint, setShowHint] = useState(false);
 
   const scoreFromEvent = (e: React.PointerEvent) => {
     const rect = trackRef.current!.getBoundingClientRect();
@@ -26,10 +27,14 @@ export function DraggableScoreBar({ aiScore, userScore, color, onChange, inviteD
   const pct = Math.round(displayScore * 100);
 
   return (
+    <>
+    <style>{`@keyframes fadeInHint { from { opacity: 0; } to { opacity: 1; } }`}</style>
     <div
       ref={trackRef}
       className="relative h-5 select-none"
       style={{ cursor: disabled ? 'default' : 'ew-resize' }}
+      onMouseEnter={() => { if (disabled) setShowHint(true); }}
+      onMouseLeave={() => setShowHint(false)}
       onPointerDown={(e) => {
         if (disabled) return;
         trackRef.current!.setPointerCapture(e.pointerId);
@@ -95,6 +100,42 @@ export function DraggableScoreBar({ aiScore, userScore, color, onChange, inviteD
       >
         {pct}%
       </span>
+
+      {/* Hint tooltip — appears when user clicks a locked slider */}
+      {showHint && (
+        <div
+          className="pointer-events-none absolute flex flex-col items-center"
+          style={{ bottom: 'calc(100% + 6px)', zIndex: 50, left: '50%', translate: '-50% 0', animation: 'fadeInHint 0.18s ease' }}
+        >
+          <div
+            style={{
+              backgroundColor: '#18181b',
+              color: '#fff',
+              fontSize: 14,
+              fontFamily: "'Dosis', sans-serif",
+              fontWeight: 600,
+              padding: '8px 14px',
+              borderRadius: 8,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.28)',
+              letterSpacing: '0.01em',
+            }}
+          >
+            Click 👎 first to adjust this score
+          </div>
+          {/* Arrow */}
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: '5px solid transparent',
+              borderRight: '5px solid transparent',
+              borderTop: '5px solid #18181b',
+            }}
+          />
+        </div>
+      )}
     </div>
+    </>
   );
 }

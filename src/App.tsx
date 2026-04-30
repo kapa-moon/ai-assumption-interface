@@ -90,15 +90,18 @@ function App() {
     handleSaveHighlight(text, msgIdx, reaction, comment);
   }, [handleSaveHighlight]);
 
-  // Lock input until every score has a reaction:
-  // all 4 INDUCT dimensions + all 2 TYPES_SUPPORT dimensions shown in the panel
+  // Lock input until every score has a reaction, but only on mandatory review turns:
+  // turn 1, then every 4 turns after that (1, 4, 8, 12, 16, 20).
   const lastMM = mentalModelsByTurn[mentalModelsByTurn.length - 1];
   const inductReactionCount = Object.keys(lastMM?.inductUserReactions ?? {}).length;
   const typesSupportReactionCount = Object.keys(lastMM?.typesSupportUserReactions ?? {}).length;
+  const currentTurn = mentalModelsByTurn.length; // 1-based count of completed turns
+  const isMandatoryReviewTurn = currentTurn === 1 || (currentTurn > 1 && currentTurn % 4 === 0);
   const isInputLocked =
     !isLoading &&
     !isLoadingMentalModel &&
-    mentalModelsByTurn.length > 0 &&
+    currentTurn > 0 &&
+    isMandatoryReviewTurn &&
     (inductReactionCount < 4 || typesSupportReactionCount < 2);
 
   const MIN_TURNS = 8;
@@ -159,12 +162,12 @@ function App() {
                 {' '}Make sure to <strong>confirm</strong> your new score and briefly explain your rationale.
               </li>
               <li>
-                You must review all scores in section{' '}
+                You may review all scores in section{' '}
                 <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5">1</span>
                 {' '}and section{' '}
                 <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5">2</span>
                 {' '}(scroll down on the right; section 2 sits below section 1) —{' '}
-                <strong className="text-red-600">6</strong> scores in total — before proceeding to your next message.
+                <strong className="text-red-600">6</strong> scores in total. On turn 1 and every 4 turns after that (turns 4, 8, 12, 16, 20), reviewing all 6 scores is required before you can continue.
               </li>
               <li>The chart shows the AI's assumed scores and your adjustments across conversational turns.</li>
               <li>We know this takes attention and effort. Your careful review is important, and we appreciate it :)</li>
@@ -204,7 +207,10 @@ function App() {
             </span>
             <div className="flex items-center gap-2 ml-3 flex-shrink-0">
               {isLoadingMentalModel && (
-                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                <div
+                  className="animate-spin flex-shrink-0"
+                  style={{ width: 18, height: 18, border: '2.5px solid #ede9fe', borderTopColor: '#7c3aed', borderRadius: '50%' }}
+                />
               )}
               <button
                 type="button"
@@ -225,11 +231,32 @@ function App() {
 
           {/* Mental models content */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            {(isLoadingMentalModel || mentalModelsByTurn.length === 0) && (
-              <p className="text-base font-light text-black leading-relaxed mb-3">
-                Updated after each AI response, based on your conversation.
-              </p>
+
+            {/* Initial idle state — big welcoming text */}
+            {mentalModelsByTurn.length === 0 && !isLoadingMentalModel && (
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 gap-4">
+                <p style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 700, fontSize: '26px', lineHeight: '1.5', color: '#18181b' }}>
+                  Updated after each AI response, based on your conversation.
+                </p>
+                <p style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 500, fontSize: '15px', color: '#a1a1aa' }}>
+                  Start chatting to see the AI's assumptions.
+                </p>
+              </div>
             )}
+
+            {/* First-load spinner — before any data arrives */}
+            {isLoadingMentalModel && mentalModelsByTurn.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full gap-4">
+                <div
+                  className="animate-spin"
+                  style={{ width: 32, height: 32, border: '3px solid #ede9fe', borderTopColor: '#7c3aed', borderRadius: '50%' }}
+                />
+                <p style={{ fontFamily: "'Dosis', sans-serif", fontWeight: 500, fontSize: '14px', color: '#a1a1aa' }}>
+                  Analyzing your conversation…
+                </p>
+              </div>
+            )}
+
             <MentalModelsPanel
               mentalModel={mentalModel}
               mentalModelsByTurn={mentalModelsByTurn}
