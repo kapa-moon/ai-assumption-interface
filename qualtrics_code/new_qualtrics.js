@@ -1,4 +1,14 @@
 Qualtrics.SurveyEngine.addOnload(function() {
+    // Intercept the Next button — show a reminder instead of advancing
+    jQuery('#NextButton').on('click', function(e) {
+        var chatComplete = Qualtrics.SurveyEngine.getEmbeddedData('chat_complete');
+        if (chatComplete !== 'true') {
+            e.stopImmediatePropagation();
+            alert('Please finish your conversation and click the "Complete Chat" button in the top-right corner of the interface to proceed.');
+            return false;
+        }
+    });
+
     window.addEventListener('message', function(event) {
         if (event.origin !== 'https://ai-assumption-interface.vercel.app') return;
         
