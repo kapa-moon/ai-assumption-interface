@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { DraggableScoreBar } from './DraggableScoreBar';
 import type { UserSelfReport, TurnIntentChoice } from '../types';
 
@@ -159,6 +159,9 @@ export function NoAssumptionPanel({
   const [intentReasonText, setIntentReasonText] = useState('');
   const [showIntentReasonSaved, setShowIntentReasonSaved] = useState(false);
   const intentReasonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastIntentRationaleRef = useRef<HTMLDivElement | null>(null);
+
+  const lastIntentValue = TURN_INTENT_OPTIONS[TURN_INTENT_OPTIONS.length - 1]?.value;
 
   const handleSaveIntentReason = useCallback(() => {
     if (!intentReasonText.trim()) return;
@@ -168,6 +171,24 @@ export function NoAssumptionPanel({
     if (intentReasonTimerRef.current) clearTimeout(intentReasonTimerRef.current);
     intentReasonTimerRef.current = setTimeout(() => setShowIntentReasonSaved(false), 1200);
   }, [intentReasonText, onTurnIntentReasonSave]);
+
+  const lastReportForScroll =
+    selfReportsByTurn.length > 0 ? selfReportsByTurn[selfReportsByTurn.length - 1] : undefined;
+  const rationaleOnLastOption =
+    lastReportForScroll?.turnIntent != null &&
+    lastReportForScroll.turnIntent === lastIntentValue;
+
+  useEffect(() => {
+    if (!rationaleOnLastOption) return;
+    const id = window.setTimeout(() => {
+      lastIntentRationaleRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest',
+      });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [rationaleOnLastOption, lastReportForScroll?.turnIntent]);
 
   if (selfReportsByTurn.length === 0) return null;
 
@@ -275,54 +296,60 @@ export function NoAssumptionPanel({
         </div>
 
         <div className="mt-4 space-y-1">
-          {TURN_INTENT_OPTIONS.map((opt) => (
-            <SelfReportCheckbox
-              key={opt.value}
-              label={opt.label}
-              sublabel={opt.sublabel}
-              checked={lastReport.turnIntent === opt.value}
-              onClick={() => onTurnIntentChange(opt.value)}
-            />
-          ))}
-
-          {/* Rationale textbox — appears after any turn intent selection */}
-          {isEditable && lastReport.turnIntent != null && (
-            <div className="mt-3">
-              {lastReport.turnIntentReason && !showIntentReasonSaved ? (
-                <p className="text-[13px] text-zinc-500" style={{ fontFamily: "'Dosis', sans-serif" }}>
-                  Note saved: <span style={{ color: '#18181b' }}>{lastReport.turnIntentReason}</span>
-                  <button
-                    type="button"
-                    onClick={() => setIntentReasonText(lastReport.turnIntentReason!)}
-                    className="ml-2 text-[11px] underline text-zinc-400 hover:text-zinc-600"
-                  >edit</button>
-                </p>
-              ) : showIntentReasonSaved ? (
-                <p className="text-[13px] font-semibold text-green-600" style={{ fontFamily: "'Dosis', sans-serif" }}>Saved</p>
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      className="w-full text-base rounded border border-zinc-200 py-1.5 pl-2.5 pr-6 bg-white focus:outline-none focus:border-zinc-400"
-                      style={{ fontFamily: "'Dosis', sans-serif" }}
-                      placeholder="Optional: note why you chose this"
-                      value={intentReasonText}
-                      onChange={(e) => setIntentReasonText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveIntentReason(); } }}
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-zinc-300 pointer-events-none select-none">↵</span>
+          {TURN_INTENT_OPTIONS.map((opt) => {
+            const showRationaleHere = isEditable && lastReport.turnIntent === opt.value;
+            const attachScrollRef = showRationaleHere && opt.value === lastIntentValue;
+            return (
+              <div key={opt.value}>
+                <SelfReportCheckbox
+                  label={opt.label}
+                  sublabel={opt.sublabel}
+                  checked={lastReport.turnIntent === opt.value}
+                  onClick={() => onTurnIntentChange(opt.value)}
+                />
+                {showRationaleHere && (
+                  <div
+                    ref={attachScrollRef ? lastIntentRationaleRef : undefined}
+                    className="px-2.5 pt-1 pb-1"
+                  >
+                    {lastReport.turnIntentReason && !showIntentReasonSaved ? (
+                      <p className="text-[13px] text-zinc-500" style={{ fontFamily: "'Dosis', sans-serif" }}>
+                        Note saved: <span style={{ color: '#18181b' }}>{lastReport.turnIntentReason}</span>
+                        <button
+                          type="button"
+                          onClick={() => setIntentReasonText(lastReport.turnIntentReason!)}
+                          className="ml-2 text-[11px] underline text-zinc-400 hover:text-zinc-600"
+                        >edit</button>
+                      </p>
+                    ) : showIntentReasonSaved ? (
+                      <p className="text-[13px] font-semibold text-green-600" style={{ fontFamily: "'Dosis', sans-serif" }}>Saved</p>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            className="w-full text-base rounded border border-zinc-200 py-1.5 pl-2.5 pr-6 bg-white focus:outline-none focus:border-zinc-400"
+                            style={{ fontFamily: "'Dosis', sans-serif" }}
+                            placeholder="Optional: note why you chose this"
+                            value={intentReasonText}
+                            onChange={(e) => setIntentReasonText(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveIntentReason(); } }}
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-zinc-300 pointer-events-none select-none">↵</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSaveIntentReason}
+                          className="flex-shrink-0 py-1 px-3 text-[11px] bg-white rounded"
+                          style={{ border: '1.5px solid #3a86ff', color: '#000', fontFamily: "'Dosis', sans-serif", fontWeight: 600 }}
+                        >Save</button>
+                      </div>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleSaveIntentReason}
-                    className="flex-shrink-0 py-1 px-3 text-[11px] bg-white rounded"
-                    style={{ border: '1.5px solid #3a86ff', color: '#000', fontFamily: "'Dosis', sans-serif", fontWeight: 600 }}
-                  >Save</button>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
