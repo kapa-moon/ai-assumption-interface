@@ -1,3 +1,75 @@
+// ─── Two-Dimension model types ──────────────────────────────────────────────
+
+export type TurnIntentChoice =
+  | 'evaluation'
+  | 'listening'
+  | 'teaching'
+  | 'concrete_info'
+  | 'encouragement';
+
+export interface PerspectiveDimension {
+  score: number;
+  explanation: string;
+}
+
+export interface TwoDimMentalModel {
+  mental_model: {
+    perspective: {
+      validation_support: PerspectiveDimension;
+      objectivity_information: PerspectiveDimension;
+    };
+    turn_intent: {
+      choice: TurnIntentChoice;
+      explanation: string;
+    };
+  };
+}
+
+export interface CombinedTwoDimModel {
+  twoDim?: TwoDimMentalModel;
+  perspectiveUser?: Record<string, number> | null;
+  perspectiveUserReasons?: Record<string, string> | null;
+  perspectiveUserReactions?: Record<string, 'up' | 'down'> | null;
+  turnIntentUser?: TurnIntentChoice | null;
+  turnIntentUserReason?: string | null;
+}
+
+export interface TwoDimTurnData {
+  turnIndex: number;
+  userMessageAt?: string;
+  assistantMessageAt?: string;
+  userMessage: string;
+  assistantMessage: string;
+  twoDimAI?: TwoDimMentalModel;
+  perspectiveUser?: Record<string, number>;
+  perspectiveUserReasons?: Record<string, string>;
+  perspectiveReactions?: Record<string, 'up' | 'down'>;
+  turnIntentUser?: TurnIntentChoice;
+  turnIntentUserReason?: string;
+  highlights?: Highlight[];
+}
+
+// ─── No-Assumption (self-report) types ──────────────────────────────────────
+
+export interface UserSelfReport {
+  validationSupport?: number;
+  objectivityInformation?: number;
+  turnIntent?: TurnIntentChoice;
+  turnIntentReason?: string;
+}
+
+export interface NeutralTurnData {
+  turnIndex: number;
+  userMessageAt?: string;
+  assistantMessageAt?: string;
+  userMessage: string;
+  assistantMessage: string;
+  selfReport?: UserSelfReport;
+  highlights?: Highlight[];
+}
+
+// ─── Six-Dimension model types ───────────────────────────────────────────────
+
 // Mental model types
 export interface InductBelief {
   score: number;
@@ -61,6 +133,8 @@ export interface Highlight {
 // Turn data for storage
 export interface TurnData {
   turnIndex: number;
+  userMessageAt?: string;
+  assistantMessageAt?: string;
   userMessage: string;
   assistantMessage: string;
   inductAI?: InductMentalModel;

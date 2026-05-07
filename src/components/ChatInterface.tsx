@@ -1,5 +1,5 @@
 // Chat Interface - main chat panel (ported from syconistic-dial)
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from '../types';
 
@@ -14,6 +14,7 @@ interface ChatInterfaceProps {
   highlightsByMessage: Record<number, number>;
   loadingConversation: boolean;
   isInputLocked?: boolean;
+  lockMessage?: ReactNode;
   isAtLimit?: boolean;
   onScrollToSection?: (section: 1 | 2) => void;
   onOpenInstructions?: () => void;
@@ -28,6 +29,7 @@ export function ChatInterface({
   onSend,
   onTextSelect,
   highlightsByMessage,
+  lockMessage,
   loadingConversation,
   isInputLocked = false,
   isAtLimit = false,
@@ -196,30 +198,34 @@ export function ChatInterface({
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
               <p className="flex-1 min-w-0 text-left text-black text-sm font-normal leading-[1.7]">
-                Rate each score with 👍 or 👎 in both section{' '}
-                <button
-                  type="button"
-                  onClick={() => onScrollToSection?.(1)}
-                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5"
-                >
-                  1
-                </button>
-                {' '}and section{' '}
-                <button
-                  type="button"
-                  onClick={() => onScrollToSection?.(2)}
-                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5"
-                >
-                  2
-                </button>
-                {' '}before continuing. If you reacted with 👎, please give your new score by moving the slider.{' '}
-                <button
-                  type="button"
-                  onClick={onOpenInstructions}
-                  className="underline font-normal text-black hover:text-zinc-600"
-                >
-                  See further instructions here
-                </button>
+                {lockMessage ?? (
+                  <>
+                    Rate each score with 👍 or 👎 in both section{' '}
+                    <button
+                      type="button"
+                      onClick={() => onScrollToSection?.(1)}
+                      className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5"
+                    >
+                      1
+                    </button>
+                    {' '}and section{' '}
+                    <button
+                      type="button"
+                      onClick={() => onScrollToSection?.(2)}
+                      className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5"
+                    >
+                      2
+                    </button>
+                    {' '}before continuing. If you reacted with 👎, please give your new score by moving the slider.{' '}
+                    <button
+                      type="button"
+                      onClick={onOpenInstructions}
+                      className="underline font-normal text-black hover:text-zinc-600"
+                    >
+                      See further instructions here
+                    </button>
+                  </>
+                )}
               </p>
             </div>
           </div>

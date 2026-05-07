@@ -15,6 +15,8 @@ function buildCompleteTurnData(
 ): TurnData {
   return {
     turnIndex: turnIdx,
+    userMessageAt: messages[turnIdx * 2]?.createdAt ?? undefined,
+    assistantMessageAt: messages[turnIdx * 2 + 1]?.createdAt ?? undefined,
     userMessage: messages[turnIdx * 2]?.content ?? '',
     assistantMessage: messages[turnIdx * 2 + 1]?.content ?? '',
     inductAI: mm.induct,
