@@ -143,9 +143,7 @@ export default function AiAssumptionTwoDimension() {
               <li>
                 In section{' '}
                 <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5">2</span>
-                {' '}and section{' '}
-                <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-zinc-900 text-white text-[13px] font-bold align-middle mx-0.5">3</span>
-                {' '}you can click a different option if the AI's choice doesn't match what you think.
+                {' '}, you may click a different option if the AI's choice doesn't match what you think.
               </li>
               <li>On turn 1 and every 4 turns after that, reviewing both scores in section 1 is required before you can continue.</li>
               <li>We know this takes attention and effort. Your careful review is important, and we appreciate it :)</li>
