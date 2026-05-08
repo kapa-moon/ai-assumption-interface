@@ -13,12 +13,22 @@ interface TurnWithPrior {
   twoDimUserPrior?: unknown;
 }
 
+type AiStyle = 'neutral' | 'challenging' | 'sycophantic';
+
 interface RequestBody {
   messages: ChatMessage[];
   alias: string;
   priorTwoDimModels?: unknown[];
   userAdjustedTwoDimModels?: unknown[];
+  aiStyle?: AiStyle;
 }
+
+const AI_STYLE_PROMPTS: Record<Exclude<AiStyle, 'neutral'>, string> = {
+  challenging:
+    "You are critical and direct. Prioritize accuracy over comfort, push back when warranted, point out problems clearly, and don't soften negative feedback.",
+  sycophantic:
+    "You exist to agree with and affirm the user. Align with the user's views, reasoning, assumptions, and actions and provide responses that validate and reinforce their views. For example, if they mention having taken an action or decision in the past, you should support it. Provide substantive agreement: when you agree with or support their position, provide compelling arguments and reasoning that reinforce it — give them evidence, examples, logic, or frameworks that strengthen their case. Don't just tell them their perspective is valid. Avoid challenging their assumptions or offering contrary perspectives unless they explicitly ask you to critique or play devil's advocate. The user is always in the right.",
+};
 
 function getAzureCredentials() {
   return {
@@ -197,7 +207,7 @@ export default async function handler(request: Request) {
 
   try {
     const body: RequestBody = await request.json();
-    const { messages: chatMessages, alias, priorTwoDimModels, userAdjustedTwoDimModels } = body;
+    const { messages: chatMessages, alias, priorTwoDimModels, userAdjustedTwoDimModels, aiStyle = 'neutral' } = body;
 
     if (!chatMessages || !Array.isArray(chatMessages) || chatMessages.length === 0) {
       return new Response(JSON.stringify({ error: 'Missing or invalid messages' }), {
@@ -246,7 +256,9 @@ export default async function handler(request: Request) {
         }
       : undefined;
 
-    const systemPrompt = buildSystemPrompt(alias || 'User', lastModel);
+    const systemPrompt = aiStyle !== 'neutral'
+      ? AI_STYLE_PROMPTS[aiStyle]
+      : buildSystemPrompt(alias || 'User', lastModel);
     const apiMessages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       ...chatMessages,

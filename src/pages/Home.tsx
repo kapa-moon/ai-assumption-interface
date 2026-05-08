@@ -7,30 +7,72 @@ interface Option {
   badge?: string;
 }
 
-const OPTIONS: Option[] = [
+const GROUPS = [
   {
-    title: 'AI Assumptions: Six Dimensions, 04/30/2026',
-    href: '/ai-assumption-six-dimension',
-    available: true,
+    label: 'With AI Assumptions Panel',
+    options: [
+      {
+        title: 'AI Assumptions (Neutral)',
+        href: '/ai-assumption-two-dimension',
+        available: true,
+      },
+      // {
+      //   title: 'AI Assumptions (Challenging)',
+      //   href: '/ai-assumption-two-dimension-challenging',
+      //   available: true,
+      // },
+      // {
+      //   title: 'AI Assumptions (Sycophantic)',
+      //   href: '/ai-assumption-two-dimension-sycophantic',
+      //   available: true,
+      // },
+    ],
   },
   {
-    title: 'No Assumption - Neutral',
-    href: '/no-assumption-neutral',
-    available: true,
+    label: 'Self-Report Only',
+    options: [
+      {
+        title: 'No AI Assumption (Neutral)',
+        href: '/no-assumption-neutral',
+        available: true,
+      },
+      // {
+      //   title: 'No AI Assumption (Challenging)',
+      //   href: '/no-assumption-challenging',
+      //   available: true,
+      // },
+      // {
+      //   title: 'No AI Assumption (Sycophantic)',
+      //   href: '/no-assumption-sycophantic',
+      //   available: true,
+      // },
+    ],
   },
   {
-    title: 'AI Assumptions: Two Dimensions 05/06/2026',
-    href: '/ai-assumption-two-dimension',
-    available: true,
+    label: 'Legacy',
+    options: [
+      {
+        title: 'AI Assumptions: Six Dimensions, 04/30/2026',
+        href: '/ai-assumption-six-dimension',
+        available: true,
+      },
+    ],
   },
 ]
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-8">
-      <div className="flex w-full max-w-5xl gap-4">
-        {OPTIONS.map((opt, i) => (
-          <OptionCard key={i} option={opt} />
+    <div className="flex min-h-screen items-center justify-center bg-white px-8 py-12">
+      <div className="flex flex-col w-full max-w-5xl gap-8">
+        {GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">{group.label}</p>
+            <div className="flex flex-wrap gap-4">
+              {group.options.map((opt, i) => (
+                <OptionCard key={i} option={opt} />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>

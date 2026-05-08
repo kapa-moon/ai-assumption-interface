@@ -26,11 +26,14 @@ function buildNeutralTurnData(
   };
 }
 
+type AiStyle = 'neutral' | 'challenging' | 'sycophantic';
+
 interface UseChatNeutralProps {
   qualtricsParams: QualtricsParams;
+  aiStyle?: AiStyle;
 }
 
-export function useChatNeutral({ qualtricsParams }: UseChatNeutralProps) {
+export function useChatNeutral({ qualtricsParams, aiStyle = 'neutral' }: UseChatNeutralProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +76,7 @@ export function useChatNeutral({ qualtricsParams }: UseChatNeutralProps) {
         body: JSON.stringify({
           messages: newMessages.map(({ role, content }) => ({ role, content })),
           alias: 'User',
+          aiStyle,
         }),
       });
 

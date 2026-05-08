@@ -31,11 +31,14 @@ function buildCompleteTwoDimTurnData(
   };
 }
 
+type AiStyle = 'neutral' | 'challenging' | 'sycophantic';
+
 interface UseChatTwoDimProps {
   qualtricsParams: QualtricsParams;
+  aiStyle?: AiStyle;
 }
 
-export function useChatTwoDim({ qualtricsParams }: UseChatTwoDimProps) {
+export function useChatTwoDim({ qualtricsParams, aiStyle = 'neutral' }: UseChatTwoDimProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -91,6 +94,7 @@ export function useChatTwoDim({ qualtricsParams }: UseChatTwoDimProps) {
           alias: 'User',
           priorTwoDimModels,
           userAdjustedTwoDimModels,
+          aiStyle,
         }),
       });
 
